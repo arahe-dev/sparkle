@@ -1,0 +1,6 @@
+{"test":"s12","variant":"tuned","metric":"full_read_usr_opt_cold_ms","value":6535,"unit":"ms","run":1,"note":"rc=0"}
+{"test":"s12","variant":"tuned","metric":"metadata_walk_cold_ms","value":715,"unit":"ms","run":1,"note":"rc=0"}
+{"test":"s12","variant":"tuned","metric":"python_import_rclpy_cold_ms","value":609,"unit":"ms","run":1,"note":"rc=0"}
+{"test":"s12","variant":"tuned","metric":"ros2_pkg_list_cold_ms","value":723,"unit":"ms","run":1,"note":"rc=0"}
+{"test":"s12","variant":"tuned","metric":"gxx_rclcpp_headers_cold_ms","value":2062,"unit":"ms","run":1,"note":"rc=0"}
+{"test":"s12","variant":"sparkle","metric":"full_read_usr_opt_cold_ms","value":6697,"unit":"ms","run":1,"note":"rc=0"}

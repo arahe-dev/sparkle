@@ -1,0 +1,143 @@
+"""Turn bench/results/raw/*.jsonl into bench/results/summary.md and charts.
+
+Every number in docs/results.md comes from this file's output; nothing is typed in by hand.
+Usage: python bench/summarize.py
+"""
+import json
+import statistics
+from collections import defaultdict
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+RAW = ROOT / "results" / "raw"
+OUT = ROOT / "results" / "summary.md"
+VARIANTS = ["plain", "tuned", "sparkle"]
+TITLES = {
+    "s10": "S10 Fixtures: build, import, size at rest, equivalence",
+    "s11": "S11 Startup (ms until a command runs)",
+    "s12": "S12 Tool speed on the image (ms)",
+    "s13": "S13 colcon build of a 5-package ROS 2 workspace",
+    "s14": "S14 Install and remove a package set (local .debs)",
+    "s15": "S15 Disk growth over repeated use",
+    "s16": "S16 Failure modes",
+    "s17": "S17 Compatibility",
+}
+
+
+def load():
+    rows = []
+    for f in sorted(RAW.glob("*.jsonl")):
+        for line in f.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                rows.append(json.loads(line))
+    return rows
+
+
+def fmt(v, unit):
+    if isinstance(v, str):
+        return v
+    if unit == "B":
+        return f"{v / 1e6:,.1f} MB"
+    if unit == "ms" and v >= 10000:
+        return f"{v / 1000:,.1f} s"
+    if unit == "ms":
+        return f"{v:,.0f} ms"
+    return f"{v:,.0f}" if float(v).is_integer() else f"{v:,.2f}"
+
+
+def cell(vals, unit):
+    if not vals:
+        return "—"
+    if any(isinstance(v, str) for v in vals):
+        return ", ".join(f"`{v}`" for v in dict.fromkeys(vals))
+    if len(vals) == 1:
+        return fmt(vals[0], unit)
+    med = statistics.median(vals)
+    return f"**{fmt(med, unit)}** <sub>{fmt(min(vals), unit)}–{fmt(max(vals), unit)}, n={len(vals)}</sub>"
+
+
+def table(rows, test):
+    groups = defaultdict(lambda: defaultdict(list))
+    units, notes, order = {}, defaultdict(list), []
+    for r in rows:
+        if r["test"] != test:
+            continue
+        m = r["metric"]
+        if m not in units:
+            order.append(m)
+        units[m] = r["unit"]
+        groups[m][r["variant"]].append(r["value"])
+        if r.get("note") and not r["note"].startswith("rc=0"):
+            notes[m].append(f'{r["variant"]}: {r["note"]}')
+    cols = [v for v in VARIANTS + ["all"] if any(v in groups[m] for m in order)]
+    out = ["| metric | " + " | ".join(cols) + " |", "|---|" + "---|" * len(cols)]
+    for m in order:
+        if test == "s17":
+            out.append(f"| {m} | " + " | ".join(
+                ("✅" if all(x == 1 for x in groups[m][c]) else "❌") if groups[m][c] else "—" for c in cols) + " |")
+            continue
+        out.append(f"| {m} | " + " | ".join(cell(groups[m][c], units[m]) for c in cols) + " |")
+    return "\n".join(out), notes
+
+
+def s15_series(rows, metric="footprint_bytes"):
+    s = defaultdict(dict)
+    for r in rows:
+        if r["test"] == "s15" and r["metric"] == metric:
+            s[r["variant"]][r["run"]] = r["value"]
+    return s
+
+
+def svg_chart(series, path, title):
+    w, h, pad = 640, 320, 56
+    pts = [(v, k, b) for v, d in series.items() for k, b in d.items()]
+    if not pts:
+        return
+    xmax = max(k for _, k, _ in pts) or 1
+    ymax = max(b for _, _, b in pts) * 1.1
+    colors = {"plain": "#d1495b", "tuned": "#edae49", "sparkle": "#00798c"}
+    x = lambda k: pad + (w - 2 * pad) * k / xmax
+    y = lambda b: h - pad - (h - 2 * pad) * b / ymax
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" font-family="sans-serif" font-size="12">',
+             f'<rect width="{w}" height="{h}" fill="#fff"/>',
+             f'<text x="{w/2}" y="20" text-anchor="middle" font-size="14">{title}</text>']
+    for i in range(5):
+        b = ymax * i / 4
+        parts.append(f'<line x1="{pad}" x2="{w-pad}" y1="{y(b):.1f}" y2="{y(b):.1f}" stroke="#ddd"/>')
+        parts.append(f'<text x="{pad-6}" y="{y(b)+4:.1f}" text-anchor="end">{b/1e9:.1f} GB</text>')
+    for k in range(xmax + 1):
+        parts.append(f'<text x="{x(k):.1f}" y="{h-pad+18}" text-anchor="middle">{k}</text>')
+    parts.append(f'<text x="{w/2}" y="{h-12}" text-anchor="middle">round of use (0 = fresh)</text>')
+    for i, (v, d) in enumerate(sorted(series.items(), key=lambda t: VARIANTS.index(t[0]))):
+        ks = sorted(d)
+        line = " ".join(f"{x(k):.1f},{y(d[k]):.1f}" for k in ks)
+        parts.append(f'<polyline fill="none" stroke="{colors[v]}" stroke-width="2.5" points="{line}"/>')
+        parts.append(f'<rect x="{w-pad-90}" y="{36+i*18}" width="12" height="12" fill="{colors[v]}"/>')
+        parts.append(f'<text x="{w-pad-72}" y="{46+i*18}">{v}</text>')
+    parts.append("</svg>")
+    path.write_text("\n".join(parts), encoding="utf-8")
+
+
+def main():
+    rows = load()
+    machine = (ROOT / "results" / "machine.txt")
+    md = ["# Benchmark summary (generated)", "",
+          "Generated by `python bench/summarize.py` from `bench/results/raw/*.jsonl`. "
+          "Cells show **median** with min–max and run count. Do not edit by hand.", ""]
+    if machine.exists():
+        md += ["```", machine.read_text(encoding="utf-8").strip(), "```", ""]
+    for test in sorted({r["test"] for r in rows}):
+        t, notes = table(rows, test)
+        md += [f"## {TITLES.get(test, test)}", "", t, ""]
+        for m, ns in notes.items():
+            uniq = sorted(set(ns))[:6]
+            md.append(f"- `{m}`: " + "; ".join(f"`{n}`" for n in uniq))
+        md.append("")
+    OUT.write_text("\n".join(md), encoding="utf-8")
+    svg_chart(s15_series(rows), ROOT / "results" / "s15-footprint.svg",
+              "Disk footprint on Windows after each round of use")
+    print(f"wrote {OUT}")
+
+
+if __name__ == "__main__":
+    main()

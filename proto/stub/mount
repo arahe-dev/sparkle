@@ -1,0 +1,19 @@
+#!/.sparkle/bin/busybox sh
+# Sparkle stub /usr/bin/mount. It lives on the seed disk *under* the image and is only
+# visible until the image is mounted over /usr.
+#
+# WSL's init calls `/bin/mount ... /mnt/c` synchronously while it automounts drives, before
+# it creates the session. That is the one early, synchronous hook a distro gets, so this stub
+# does the real mount and then mounts the pack image (init.sh). `[boot] command` is too late:
+# it runs asynchronously and the first shell can start before /usr exists.
+B=/.sparkle/bin/busybox
+echo "stub mount: $*" >> /.sparkle/boot.log
+t=; drive=; n=$#; i=0
+while [ $i -lt $n ]; do a=$1; shift; i=$((i+1))
+  if [ "$a" = -t ]; then t=$1; shift; i=$((i+1)); continue; fi
+  set -- "$@" "$a"; case "$a" in /mnt/?) drive=$a ;; esac
+done
+if [ "$t" = drvfs ]; then /usr/sbin/mount.drvfs "$@"; else $B mount ${t:+-t "$t"} "$@"; fi
+rc=$?
+[ -n "$drive" ] && [ $rc = 0 ] && $B sh /.sparkle/init.sh fromstub
+exit $rc

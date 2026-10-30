@@ -1,0 +1,3 @@
+#!/.sparkle/bin/busybox sh
+# WSL runs /sbin/ldconfig at boot, before the image is mounted. The real one runs from init.sh.
+echo "stub ldconfig: $*" >> /.sparkle/boot.log

@@ -1,0 +1,4 @@
+bench/results/raw/*.tmp
+*.vhdx
+*.sqfs
+*.tar
