@@ -8,7 +8,11 @@ STAGE=$1 T=$2 OUT=$3 BB=${4:-}
 P=$(dirname "$(readlink -f "$0")")
 case $STAGE in
 setup)
-  cp "$P/common-setup.sh" "$T/tmp/cs.sh"; chroot "$T" /bin/sh /tmp/cs.sh; rm "$T/tmp/cs.sh" ;;
+  cp "$P/common-setup.sh" "$T/tmp/cs.sh"; chroot "$T" /bin/sh /tmp/cs.sh; rm "$T/tmp/cs.sh"
+  # The clean package set every benchmark step returns to.
+  mkdir -p "$OUT"
+  chroot "$T" dpkg-query -W -f='${db:Status-Abbrev} ${Package}
+' | awk '$1=="ii"{print $2}' | sort > "$OUT/baseline-pkgs.txt" ;;
 tuned)
   # plain + the volatile paths: what a careful WSL user can do with fstab alone.
   cat "$P/volatile/fstab" >> "$T/etc/fstab"

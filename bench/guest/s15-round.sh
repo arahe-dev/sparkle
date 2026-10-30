@@ -11,7 +11,8 @@ su - dev -c 'cd ~/ws && rm -rf build install log && colcon build >/dev/null 2>&1
 apt-get purge -y $PKGS >/dev/null 2>&1; apt-get autoremove --purge -y >/dev/null 2>&1
 X=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}
 ' | awk '$1=="ii"{print $2}' | sort | comm -13 $D/baseline-pkgs.txt -)
-[ -n "$X" ] && apt-get purge -y $X >/dev/null 2>&1   # back to the exact clean package set; apt-get clean  # tidy user
+[ -n "$X" ] && apt-get purge -y $X >/dev/null 2>&1   # back to the exact clean package set
+apt-get clean                                                                      # tidy user: drop downloaded .debs
 su - dev -c 'rm -rf ~/ws/build ~/ws/install ~/ws/log'
 sync
 echo "df_used_bytes $(df -B1 --output=used / | tail -1)"

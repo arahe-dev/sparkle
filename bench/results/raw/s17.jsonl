@@ -1,9 +1,57 @@
 {"test":"s17","variant":"plain","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
 {"test":"s17","variant":"plain","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
-{"test":"s17","variant":"plain","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-plainroot'"}
+{"test":"s17","variant":"plain","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"plain","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
+{"test":"s17","variant":"plain","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb-plain"}
+{"test":"s17","variant":"plain","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
+{"test":"s17","variant":"plain","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2620:2d:4000:1::103 archive.ubuntu.com"}
+{"test":"s17","variant":"plain","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
+{"test":"s17","variant":"plain","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"plain","metric":"ros_cli","value":1,"unit":"pass","run":0,"note":"194"}
+{"test":"s17","variant":"plain","metric":"ros_pubsub","value":1,"unit":"pass","run":0,"note":"received: sparkle"}
+{"test":"s17","variant":"plain","metric":"python_scipy","value":1,"unit":"pass","run":0,"note":"8.0"}
+{"test":"s17","variant":"plain","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
+{"test":"s17","variant":"plain","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
+{"test":"s17","variant":"plain","metric":"gdb","value":1,"unit":"pass","run":0,"note":"$1 = 42"}
+{"test":"s17","variant":"plain","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}
+{"test":"s17","variant":"plain","metric":"wslg_wayland","value":1,"unit":"pass","run":0,"note":"WAYLAND_DISPLAY=wayland-0, socket ok"}
+{"test":"s17","variant":"plain","metric":"gpu_opengl_d3d12","value":1,"unit":"pass","run":0,"note":"OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)"}
+{"test":"s17","variant":"plain","metric":"tmp_is","value":1,"unit":"pass","run":0,"note":""}
 {"test":"s17","variant":"tuned","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
 {"test":"s17","variant":"tuned","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
-{"test":"s17","variant":"tuned","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-tunedroot'"}
+{"test":"s17","variant":"tuned","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"tuned","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
+{"test":"s17","variant":"tuned","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb-tuned"}
+{"test":"s17","variant":"tuned","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
+{"test":"s17","variant":"tuned","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2620:2d:4002:1::103 archive.ubuntu.com"}
+{"test":"s17","variant":"tuned","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
+{"test":"s17","variant":"tuned","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"tuned","metric":"ros_cli","value":1,"unit":"pass","run":0,"note":"194"}
+{"test":"s17","variant":"tuned","metric":"ros_pubsub","value":1,"unit":"pass","run":0,"note":"received: sparkle"}
+{"test":"s17","variant":"tuned","metric":"python_scipy","value":1,"unit":"pass","run":0,"note":"8.0"}
+{"test":"s17","variant":"tuned","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
+{"test":"s17","variant":"tuned","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
+{"test":"s17","variant":"tuned","metric":"gdb","value":1,"unit":"pass","run":0,"note":"$1 = 42"}
+{"test":"s17","variant":"tuned","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}
+{"test":"s17","variant":"tuned","metric":"wslg_wayland","value":1,"unit":"pass","run":0,"note":"WAYLAND_DISPLAY=wayland-0, socket ok"}
+{"test":"s17","variant":"tuned","metric":"gpu_opengl_d3d12","value":1,"unit":"pass","run":0,"note":"OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)"}
+{"test":"s17","variant":"tuned","metric":"tmp_is","value":1,"unit":"pass","run":0,"note":"tmpfs"}
 {"test":"s17","variant":"sparkle","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
 {"test":"s17","variant":"sparkle","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
-{"test":"s17","variant":"sparkle","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-sparkleroot'"}
+{"test":"s17","variant":"sparkle","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"sparkle","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
+{"test":"s17","variant":"sparkle","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb-sparkle"}
+{"test":"s17","variant":"sparkle","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
+{"test":"s17","variant":"sparkle","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2620:2d:4000:1::103 archive.ubuntu.com"}
+{"test":"s17","variant":"sparkle","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
+{"test":"s17","variant":"sparkle","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
+{"test":"s17","variant":"sparkle","metric":"ros_cli","value":1,"unit":"pass","run":0,"note":"194"}
+{"test":"s17","variant":"sparkle","metric":"ros_pubsub","value":1,"unit":"pass","run":0,"note":"received: sparkle"}
+{"test":"s17","variant":"sparkle","metric":"python_scipy","value":1,"unit":"pass","run":0,"note":"8.0"}
+{"test":"s17","variant":"sparkle","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
+{"test":"s17","variant":"sparkle","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
+{"test":"s17","variant":"sparkle","metric":"gdb","value":1,"unit":"pass","run":0,"note":"$1 = 42"}
+{"test":"s17","variant":"sparkle","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}
+{"test":"s17","variant":"sparkle","metric":"wslg_wayland","value":1,"unit":"pass","run":0,"note":"WAYLAND_DISPLAY=wayland-0, socket ok"}
+{"test":"s17","variant":"sparkle","metric":"gpu_opengl_d3d12","value":1,"unit":"pass","run":0,"note":"OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)"}
+{"test":"s17","variant":"sparkle","metric":"tmp_is","value":1,"unit":"pass","run":0,"note":"tmpfs"}

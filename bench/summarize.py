@@ -65,7 +65,9 @@ def table(rows, test):
         m = r["metric"]
         if m not in units:
             order.append(m)
-        units[m] = r["unit"]
+        # The metric name is the source of truth for units (some early rows mislabelled counts).
+        units[m] = "B" if m.endswith("_bytes") else "ms" if m.endswith("_ms") else (
+            "count" if r["unit"] == "B" else r["unit"])
         groups[m][r["variant"]].append(r["value"])
         if r.get("note") and not r["note"].startswith("rc=0"):
             notes[m].append(f'{r["variant"]}: {r["note"]}')
@@ -80,42 +82,58 @@ def table(rows, test):
     return "\n".join(out), notes
 
 
-def s15_series(rows, metric="footprint_bytes"):
-    s = defaultdict(dict)
-    for r in rows:
-        if r["test"] == "s15" and r["metric"] == metric:
-            s[r["variant"]][r["run"]] = r["value"]
-    return s
+STAGES = [  # (label, test, metric, run) - one bar per variant per stage
+    ("fresh import", "s10", "footprint_bytes", None),
+    ("after the S11-S15 workload", "s15", "footprint_bytes", 5),
+    ("after wsl --manage --compact", "s15", "footprint_after_compact_bytes", None),
+]
 
 
-def svg_chart(series, path, title):
-    w, h, pad = 640, 320, 56
-    pts = [(v, k, b) for v, d in series.items() for k, b in d.items()]
-    if not pts:
+def lifecycle(rows):
+    """{stage label: {variant: bytes}} for the footprint chart."""
+    out = {}
+    for label, test, metric, run in STAGES:
+        d = {}
+        for r in rows:
+            if r["test"] == test and r["metric"] == metric and (run is None or r["run"] == run):
+                d[r["variant"]] = r["value"]
+        out[label] = d
+    return out
+
+
+def svg_chart(stages, path, title):
+    """Grouped bars: disk space on Windows per variant at each stage of a pack's life."""
+    if not any(stages.values()):
         return
-    xmax = max(k for _, k, _ in pts) or 1
-    ymax = max(b for _, _, b in pts) * 1.1
+    w, h, pad, top = 680, 340, 60, 60
     colors = {"plain": "#d1495b", "tuned": "#edae49", "sparkle": "#00798c"}
-    x = lambda k: pad + (w - 2 * pad) * k / xmax
-    y = lambda b: h - pad - (h - 2 * pad) * b / ymax
+    ymax = max(b for d in stages.values() for b in d.values()) * 1.15
+    y = lambda b: h - pad - (h - pad - top) * b / ymax
+    gw = (w - 2 * pad) / len(stages)
+    bw = gw / (len(VARIANTS) + 1.2)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" font-family="sans-serif" font-size="12">',
              f'<rect width="{w}" height="{h}" fill="#fff"/>',
-             f'<text x="{w/2}" y="20" text-anchor="middle" font-size="14">{title}</text>']
+             f'<text x="{w/2}" y="22" text-anchor="middle" font-size="15">{title}</text>']
     for i in range(5):
         b = ymax * i / 4
-        parts.append(f'<line x1="{pad}" x2="{w-pad}" y1="{y(b):.1f}" y2="{y(b):.1f}" stroke="#ddd"/>')
-        parts.append(f'<text x="{pad-6}" y="{y(b)+4:.1f}" text-anchor="end">{b/1e9:.1f} GB</text>')
-    for k in range(xmax + 1):
-        parts.append(f'<text x="{x(k):.1f}" y="{h-pad+18}" text-anchor="middle">{k}</text>')
-    parts.append(f'<text x="{w/2}" y="{h-12}" text-anchor="middle">round of use (0 = fresh)</text>')
-    for i, (v, d) in enumerate(sorted(series.items(), key=lambda t: VARIANTS.index(t[0]))):
-        ks = sorted(d)
-        line = " ".join(f"{x(k):.1f},{y(d[k]):.1f}" for k in ks)
-        parts.append(f'<polyline fill="none" stroke="{colors[v]}" stroke-width="2.5" points="{line}"/>')
-        parts.append(f'<rect x="{w-pad-90}" y="{36+i*18}" width="12" height="12" fill="{colors[v]}"/>')
-        parts.append(f'<text x="{w-pad-72}" y="{46+i*18}">{v}</text>')
+        parts.append(f'<line x1="{pad}" x2="{w-pad}" y1="{y(b):.1f}" y2="{y(b):.1f}" stroke="#e5e5e5"/>')
+        parts.append(f'<text x="{pad-6}" y="{y(b)+4:.1f}" text-anchor="end" fill="#555">{b/1e9:.1f} GB</text>')
+    for g, (label, d) in enumerate(stages.items()):
+        x0 = pad + g * gw + bw * 0.6
+        for k, v in enumerate(VARIANTS):
+            if v not in d:
+                continue
+            x = x0 + k * bw
+            parts.append(f'<rect x="{x:.1f}" y="{y(d[v]):.1f}" width="{bw*0.9:.1f}" height="{y(0)-y(d[v]):.1f}" fill="{colors[v]}"/>')
+            parts.append(f'<text x="{x+bw*0.45:.1f}" y="{y(d[v])-4:.1f}" text-anchor="middle" font-size="10">{d[v]/1e9:.2f}</text>')
+        parts.append(f'<text x="{pad + g*gw + gw/2:.1f}" y="{h-pad+18}" text-anchor="middle">{label}</text>')
+    for k, v in enumerate(VARIANTS):
+        parts.append(f'<rect x="{pad + k*110}" y="34" width="12" height="12" fill="{colors[v]}"/>')
+        parts.append(f'<text x="{pad + k*110 + 17}" y="44">{v}</text>')
+    parts.append(f'<text x="{w/2}" y="{h-14}" text-anchor="middle" fill="#555" font-size="11">'
+                 'Bytes on the Windows drive: the distro disk, plus the image file for sparkle. Same 599 packages at every stage.</text>')
     parts.append("</svg>")
-    path.write_text("\n".join(parts), encoding="utf-8")
+    path.write_text("\n".join(parts), encoding="utf-8", newline="\n")
 
 
 def main():
@@ -134,8 +152,8 @@ def main():
             md.append(f"- `{m}`: " + "; ".join(f"`{n}`" for n in uniq))
         md.append("")
     OUT.write_text("\n".join(md), encoding="utf-8", newline="\n")
-    svg_chart(s15_series(rows), ROOT / "results" / "s15-footprint.svg",
-              "Disk footprint on Windows after each round of use")
+    svg_chart(lifecycle(rows), ROOT / "results" / "footprint.svg",
+              "Disk space a ROS 2 pack takes on Windows")
     print(f"wrote {OUT}")
 
 

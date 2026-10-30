@@ -25,6 +25,8 @@ There is no Sparkle binary yet.
 | Inside the seed (before the image mounts), nothing under `/usr` exists | Use `/.sparkle/bin/busybox <applet>` for every tool |
 | busybox `ash` misparses `(a\|b)` inside `$(...)` | Put the regex in an awk `/.../` literal or a variable |
 | `[boot] command` runs async; the first shell can start before it finishes | Mount the image from the stub `/usr/bin/mount` (see `proto/stub/mount`) |
+| `TaskStop`/killing the Windows side leaves Git Bash children *and* guest processes running | `ps -ef \| grep sNN` + `kill`, then check `ps` inside each distro before trusting state |
+| Benchmarks that restart WSL make Windows re-attach devices and refresh Explorer | Hold distros open (`bench/run-quiet.sh`); keep shutdowns to one per run; warn the user before S11/S16 |
 | GitHub over HTTPS may reset on some networks | Use a proxy: `git -c http.proxy=http://127.0.0.1:8377 push` |
 
 ## Running
@@ -34,7 +36,9 @@ bash bench/run-all.sh image.tar      # ~1 h; or run one bench/sNN-*.sh at a time
 python bench/summarize.py            # regenerate summary.md + charts
 ```
 
-Each `sNN-*.sh` truncates its own `raw/sNN.jsonl` at the start, so re-running a test replaces its data.
+Most `sNN-*.sh` truncate their own `raw/sNN.jsonl` at the start, so re-running a test replaces its data. The exceptions:
+- S10 appends (`s10b-equivalence.sh` replaces its own rows).
+- S14 keeps its one-time prep rows (`run: 0`).
 
 ## Adding a benchmark
 

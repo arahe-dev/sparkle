@@ -46,14 +46,103 @@ SAMSUNG MZVL2512HDJD-00BL2
 
 | metric | plain | tuned | sparkle |
 |---|---|---|---|
-| full_read_usr_opt_cold_ms | **5,695 ms** <sub>5,589 ms–5,936 ms, n=5</sub> | **6,415 ms** <sub>6,214 ms–6,618 ms, n=5</sub> | **6,697 ms** <sub>6,349 ms–8,442 ms, n=5</sub> |
-| metadata_walk_cold_ms | **727 ms** <sub>693 ms–734 ms, n=5</sub> | **661 ms** <sub>621 ms–715 ms, n=5</sub> | **308 ms** <sub>263 ms–594 ms, n=5</sub> |
-| python_import_rclpy_cold_ms | **454 ms** <sub>436 ms–507 ms, n=5</sub> | **428 ms** <sub>405 ms–609 ms, n=5</sub> | **982 ms** <sub>844 ms–1,455 ms, n=5</sub> |
-| ros2_pkg_list_cold_ms | **587 ms** <sub>575 ms–598 ms, n=5</sub> | **539 ms** <sub>534 ms–723 ms, n=5</sub> | **1,027 ms** <sub>855 ms–1,322 ms, n=5</sub> |
-| gxx_rclcpp_headers_cold_ms | **1,930 ms** <sub>1,895 ms–1,979 ms, n=5</sub> | **1,974 ms** <sub>1,925 ms–2,127 ms, n=5</sub> | **3,959 ms** <sub>3,594 ms–4,288 ms, n=5</sub> |
-| full_read_usr_opt_warm_ms | **578 ms** <sub>556 ms–5,907 ms, n=5</sub> | **837 ms** <sub>557 ms–6,118 ms, n=5</sub> | **979 ms** <sub>704 ms–7,345 ms, n=5</sub> |
-| metadata_walk_warm_ms | **44 ms** <sub>38 ms–50 ms, n=5</sub> | **40 ms** <sub>39 ms–41 ms, n=5</sub> | **142 ms** <sub>129 ms–298 ms, n=5</sub> |
-| python_import_rclpy_warm_ms | **170 ms** <sub>169 ms–192 ms, n=5</sub> | **159 ms** <sub>146 ms–165 ms, n=5</sub> | **208 ms** <sub>180 ms–253 ms, n=5</sub> |
-| ros2_pkg_list_warm_ms | **254 ms** <sub>249 ms–255 ms, n=5</sub> | **218 ms** <sub>207 ms–231 ms, n=5</sub> | **315 ms** <sub>306 ms–322 ms, n=5</sub> |
-| gxx_rclcpp_headers_warm_ms | **1,953 ms** <sub>1,922 ms–1,983 ms, n=5</sub> | **1,974 ms** <sub>1,891 ms–2,044 ms, n=5</sub> | **1,985 ms** <sub>1,958 ms–3,433 ms, n=5</sub> |
+| full_read_usr_opt_cold_ms | **5,980 ms** <sub>5,826 ms–6,158 ms, n=5</sub> | **6,568 ms** <sub>6,483 ms–6,656 ms, n=5</sub> | **6,771 ms** <sub>6,444 ms–7,187 ms, n=5</sub> |
+| metadata_walk_cold_ms | **709 ms** <sub>671 ms–751 ms, n=5</sub> | **733 ms** <sub>705 ms–740 ms, n=5</sub> | **419 ms** <sub>336 ms–704 ms, n=5</sub> |
+| python_import_rclpy_cold_ms | **470 ms** <sub>453 ms–503 ms, n=5</sub> | **438 ms** <sub>417 ms–643 ms, n=5</sub> | **845 ms** <sub>696 ms–1,253 ms, n=5</sub> |
+| ros2_pkg_list_cold_ms | **603 ms** <sub>598 ms–608 ms, n=5</sub> | **569 ms** <sub>547 ms–740 ms, n=5</sub> | **1,225 ms** <sub>979 ms–1,268 ms, n=5</sub> |
+| gxx_rclcpp_headers_cold_ms | **2,058 ms** <sub>2,051 ms–2,072 ms, n=5</sub> | **2,059 ms** <sub>2,035 ms–2,123 ms, n=5</sub> | **3,849 ms** <sub>3,639 ms–4,536 ms, n=5</sub> |
+| full_read_usr_opt_warm_ms | **542 ms** <sub>514 ms–812 ms, n=5</sub> | **546 ms** <sub>517 ms–905 ms, n=5</sub> | **792 ms** <sub>686 ms–1,422 ms, n=5</sub> |
+| metadata_walk_warm_ms | **39 ms** <sub>39 ms–44 ms, n=5</sub> | **42 ms** <sub>41 ms–44 ms, n=5</sub> | **177 ms** <sub>112 ms–213 ms, n=5</sub> |
+| python_import_rclpy_warm_ms | **172 ms** <sub>170 ms–182 ms, n=5</sub> | **158 ms** <sub>153 ms–177 ms, n=5</sub> | **205 ms** <sub>188 ms–240 ms, n=5</sub> |
+| ros2_pkg_list_warm_ms | **252 ms** <sub>250 ms–257 ms, n=5</sub> | **219 ms** <sub>217 ms–225 ms, n=5</sub> | **299 ms** <sub>268 ms–320 ms, n=5</sub> |
+| gxx_rclcpp_headers_warm_ms | **1,963 ms** <sub>1,941 ms–2,088 ms, n=5</sub> | **1,996 ms** <sub>1,937 ms–2,016 ms, n=5</sub> | **1,975 ms** <sub>1,952 ms–1,999 ms, n=5</sub> |
 
+
+## S13 colcon build of a 5-package ROS 2 workspace
+
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| colcon_build_ms | **20.2 s** <sub>19.9 s–20.3 s, n=3</sub> | **20.0 s** <sub>19.4 s–20.2 s, n=3</sub> | **18.0 s** <sub>16.2 s–20.9 s, n=3</sub> |
+| build_dir_mb | **6** <sub>6–6, n=3</sub> | **6** <sub>6–6, n=3</sub> | **6** <sub>6–6, n=3</sub> |
+| vhdx_growth_bytes | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–33.6 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> |
+
+
+## S14 Install and remove a package set (local .debs)
+
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| apt_update_ms | 121.1 s | — | — |
+| apt_lists_bytes | 54.8 MB | — | — |
+| debs_count | 134 | — | — |
+| debs_bytes | 111.7 MB | — | — |
+| install_ms | **32.0 s** <sub>30.9 s–33.0 s, n=3</sub> | **31.7 s** <sub>31.3 s–31.9 s, n=3</sub> | **34.0 s** <sub>31.4 s–34.7 s, n=3</sub> |
+| install_df_delta_bytes | **533.0 MB** <sub>533.0 MB–533.0 MB, n=3</sub> | **508.8 MB** <sub>508.8 MB–508.8 MB, n=3</sub> | **508.8 MB** <sub>508.8 MB–508.8 MB, n=3</sub> |
+| dpkg_installed | **666** <sub>599–733, n=6</sub> | **666** <sub>599–733, n=6</sub> | **666** <sub>599–733, n=6</sub> |
+| dpkg_audit_lines | **0** <sub>0–0, n=6</sub> | **0** <sub>0–0, n=6</sub> | **0** <sub>0–0, n=6</sub> |
+| install_vhdx_delta_bytes | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–201.3 MB, n=3</sub> |
+| remove_ms | **20.2 s** <sub>20.0 s–20.3 s, n=3</sub> | **20.4 s** <sub>20.2 s–20.7 s, n=3</sub> | **20.5 s** <sub>20.4 s–21.0 s, n=3</sub> |
+| remove_df_delta_bytes | **-518.0 MB** <sub>-518.0 MB–-518.0 MB, n=3</sub> | **-495.7 MB** <sub>-495.7 MB–-495.7 MB, n=3</sub> | **-495.7 MB** <sub>-495.7 MB–-495.7 MB, n=3</sub> |
+| left_after_autoremove | **18** <sub>18–18, n=3</sub> | **18** <sub>18–18, n=3</sub> | **18** <sub>18–18, n=3</sub> |
+| remove_vhdx_delta_bytes | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> | **0.0 MB** <sub>0.0 MB–0.0 MB, n=3</sub> |
+
+
+## S15 Disk growth over repeated use
+
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| footprint_bytes | **2,890.9 MB** <sub>2,823.8 MB–2,924.5 MB, n=6</sub> | **2,774.5 MB** <sub>2,724.2 MB–2,791.3 MB, n=6</sub> | **2,006.4 MB** <sub>2,006.4 MB–2,006.4 MB, n=6</sub> |
+| vhdx_bytes | **2,890.9 MB** <sub>2,823.8 MB–2,924.5 MB, n=6</sub> | **2,774.5 MB** <sub>2,724.2 MB–2,791.3 MB, n=6</sub> | **1,670.4 MB** <sub>1,670.4 MB–1,670.4 MB, n=6</sub> |
+| df_used_bytes | **1,053.1 MB** <sub>1,052.7 MB–1,053.5 MB, n=5</sub> | **993.8 MB** <sub>993.4 MB–994.2 MB, n=5</sub> | **49.6 MB** <sub>49.2 MB–50.0 MB, n=5</sub> |
+| tmpfs_used_bytes | **0.0 MB** <sub>0.0 MB–0.0 MB, n=5</sub> | **99.7 MB** <sub>99.7 MB–99.7 MB, n=5</sub> | **99.7 MB** <sub>99.7 MB–99.7 MB, n=5</sub> |
+| mem_used_mb | **1,023** <sub>994–1,059, n=5</sub> | **1,024** <sub>976–1,034, n=5</sub> | **1,025** <sub>1,006–1,062, n=5</sub> |
+| footprint_before_reset_bytes | — | — | 2,107.0 MB |
+| reset_boot_ms | — | — | 1,669 ms |
+| dpkg_before_reset | — | — | 733 |
+| dpkg_after_reset | — | — | 599 |
+| upper_after_reset_bytes | — | — | 0.0 MB |
+| compact_ms | 7,836 ms | 6,549 ms | 6,057 ms |
+| vhdx_after_compact_bytes | 2,252.3 MB | 2,195.7 MB | 1,235.2 MB |
+| footprint_after_compact_bytes | 2,252.3 MB | 2,195.7 MB | 1,571.2 MB |
+
+
+## S17 Compatibility
+
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| default_user | ✅ | ✅ | ✅ |
+| sudo_nopasswd | ✅ | ✅ | ✅ |
+| interop_cmd_exe | ✅ | ✅ | ✅ |
+| drive_c | ✅ | ✅ | ✅ |
+| wslpath | ✅ | ✅ | ✅ |
+| wslinfo | ✅ | ✅ | ✅ |
+| dns_resolve | ✅ | ✅ | ✅ |
+| gpu_nvidia_smi | ✅ | ✅ | ✅ |
+| gpu_dxg | ✅ | ✅ | ✅ |
+| ros_cli | ✅ | ✅ | ✅ |
+| ros_pubsub | ✅ | ✅ | ✅ |
+| python_scipy | ✅ | ✅ | ✅ |
+| dpkg_audit | ✅ | ✅ | ✅ |
+| apt_check | ✅ | ✅ | ✅ |
+| gdb | ✅ | ✅ | ✅ |
+| wslg_x11 | ✅ | ✅ | ✅ |
+| wslg_wayland | ✅ | ✅ | ✅ |
+| gpu_opengl_d3d12 | ✅ | ✅ | ✅ |
+| tmp_is | ✅ | ✅ | ✅ |
+
+- `default_user`: `plain: dev`; `sparkle: dev`; `tuned: dev`
+- `sudo_nopasswd`: `plain: ok`; `sparkle: ok`; `tuned: ok`
+- `drive_c`: `plain: /mnt/c/Windows`; `sparkle: /mnt/c/Windows`; `tuned: /mnt/c/Windows`
+- `wslpath`: `plain: wsl.localhostspb-plain`; `sparkle: wsl.localhostspb-sparkle`; `tuned: wsl.localhostspb-tuned`
+- `wslinfo`: `plain: nat`; `sparkle: nat`; `tuned: nat`
+- `dns_resolve`: `plain: 2620:2d:4000:1::103 archive.ubuntu.com`; `sparkle: 2620:2d:4000:1::103 archive.ubuntu.com`; `tuned: 2620:2d:4002:1::103 archive.ubuntu.com`
+- `gpu_nvidia_smi`: `plain: GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU`; `sparkle: GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU`; `tuned: GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU`
+- `ros_cli`: `plain: 194`; `sparkle: 194`; `tuned: 194`
+- `ros_pubsub`: `plain: received: sparkle`; `sparkle: received: sparkle`; `tuned: received: sparkle`
+- `python_scipy`: `plain: 8.0`; `sparkle: 8.0`; `tuned: 8.0`
+- `dpkg_audit`: `plain: clean`; `sparkle: clean`; `tuned: clean`
+- `apt_check`: `plain: Reading package lists...`; `sparkle: Reading package lists...`; `tuned: Reading package lists...`
+- `gdb`: `plain: $1 = 42`; `sparkle: $1 = 42`; `tuned: $1 = 42`
+- `wslg_x11`: `plain: DISPLAY=:0, socket ok`; `sparkle: DISPLAY=:0, socket ok`; `tuned: DISPLAY=:0, socket ok`
+- `wslg_wayland`: `plain: WAYLAND_DISPLAY=wayland-0, socket ok`; `sparkle: WAYLAND_DISPLAY=wayland-0, socket ok`; `tuned: WAYLAND_DISPLAY=wayland-0, socket ok`
+- `gpu_opengl_d3d12`: `plain: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `sparkle: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `tuned: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`
+- `tmp_is`: `sparkle: tmpfs`; `tuned: tmpfs`
