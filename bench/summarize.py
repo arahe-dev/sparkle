@@ -133,7 +133,7 @@ def main():
             uniq = sorted(set(ns))[:6]
             md.append(f"- `{m}`: " + "; ".join(f"`{n}`" for n in uniq))
         md.append("")
-    OUT.write_text("\n".join(md), encoding="utf-8")
+    OUT.write_text("\n".join(md), encoding="utf-8", newline="\n")
     svg_chart(s15_series(rows), ROOT / "results" / "s15-footprint.svg",
               "Disk footprint on Windows after each round of use")
     print(f"wrote {OUT}")

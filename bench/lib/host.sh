@@ -19,8 +19,11 @@ since_ms() { echo $(( $(now_ms) - $1 )); }
 
 # Run the script on stdin inside a distro: wx <distro> <user> [args...]. Commands go through
 # stdin, never the command line: wsl.exe mangles `$` and quoting.
+# The profile is sourced by hand: a login shell would run ~/.bash_logout, whose clear_console
+# fails without a terminal and turns every exit code into 1.
 wx() { local d=$1 u=$2; shift 2
-  wsl.exe -d "$d" -u "$u" --cd / -- bash -l -s -- "$@" 2> >(grep -v 'Failed to translate' >&2); }
+  { echo '. /etc/profile >/dev/null 2>&1; cd ~'; cat; } |
+    wsl.exe -d "$d" -u "$u" --cd / -- bash -s -- "$@" 2> >(grep -v 'Failed to translate' >&2); }
 
 # Variant order rotates each run so drift (thermals, background work) hits every variant.
 order() { local r=$1 n=${#VARIANTS[@]} i; for i in $(seq 0 $((n-1))); do echo "${VARIANTS[$(( (i + r) % n ))]}"; done; }

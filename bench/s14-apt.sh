@@ -3,7 +3,7 @@
 # their dependencies) from local .debs. Measures time, the space the guest sees, and how much
 # the Windows-side disk file grows and gives back.
 . "$(dirname "$0")/lib/host.sh"
-N=${N:-3}; : > "$RAW/s14.jsonl"
+N=${N:-3}; [ -f "$RAW/s14.jsonl" ] && sed -i "/\"run\":0,/!d" "$RAW/s14.jsonl"   # keep the one-time prep rows
 if [ ! -f "$BENCH/lists.tar" ]; then
   log "prep: apt update + download (network, once, in plain)"
   wx "$(distro plain)" root "$BENCH_WSL" < "$REPO/bench/guest/s14-prep.sh" | while read -r m val; do

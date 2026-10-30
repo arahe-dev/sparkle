@@ -10,9 +10,6 @@
 {"test":"s10","variant":"sparkle","metric":"import_ms","value":1050,"unit":"ms","run":0,"note":""}
 {"test":"s10","variant":"sparkle","metric":"image_bytes","value":335990784,"unit":"B","run":0,"note":""}
 {"test":"s10","variant":"sparkle","metric":"seed_tar_bytes","value":36352000,"unit":"B","run":0,"note":""}
-{"test":"s10","variant":"plain","metric":"wsl_mounts_under_usr","value":5,"unit":"count","run":0,"note":""}
-{"test":"s10","variant":"tuned","metric":"wsl_mounts_under_usr","value":5,"unit":"count","run":0,"note":""}
-{"test":"s10","variant":"sparkle","metric":"wsl_mounts_under_usr","value":10,"unit":"count","run":0,"note":""}
 {"test":"s10","variant":"plain","metric":"manifest_meta","value":"ebb8feac4d2b5dc0","unit":"text","run":0,"note":""}
 {"test":"s10","variant":"plain","metric":"manifest_content","value":"b4173a482cb02bd8","unit":"text","run":0,"note":""}
 {"test":"s10","variant":"plain","metric":"manifest_entries","value":38516,"unit":"count","run":0,"note":""}

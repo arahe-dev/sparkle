@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # S16: failure modes. What happens when things go wrong, and does the pack recover?
 #   concurrent_cold  - 4 terminals opened at once on a stopped distro (5 reps)
-#   power_cut        - VM killed (wsl --shutdown) in the middle of dpkg -i
+#   power_cut        - VM killed (wsl --shutdown) in the middle of an apt install
 #   image_missing    - the image file is gone (sparkle only): what does the user see?
 #   export           - `wsl --export` (what users do for backups)
 . "$(dirname "$0")/lib/host.sh"
@@ -18,14 +18,17 @@ for rep in 1 2 3 4 5; do for v in "${VARIANTS[@]}"; do
 done; done
 kill $KEEP 2>/dev/null || true
 
-log "power cut during dpkg -i"
+log "power cut during apt install"
 for v in "${VARIANTS[@]}"; do
   wx "$(distro $v)" root "$BENCH_WSL" install < "$REPO/bench/guest/s14.sh" >/dev/null 2>&1 &
   sleep 6; wsl.exe --shutdown; wait || true
   boot=0; probe "$v" && boot=1
   res=$(wx "$(distro $v)" root "$BENCH_WSL" <<'SH'
 a=$(dpkg --audit 2>&1 | grep -c .); dpkg --configure -a >/dev/null 2>&1; c=$?
-P=$(for f in $1/debs/*.deb; do dpkg-deb -f $f Package; done); dpkg -P $P >/dev/null 2>&1; p=$?
+apt-get purge -y mesa-utils python3-scipy ripgrep jq htop gdb >/dev/null 2>&1 && apt-get autoremove --purge -y >/dev/null 2>&1; p=$?
+D=$1; X=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}
+' | awk '$1=="ii"{print $2}' | sort | comm -13 $D/baseline-pkgs.txt -)
+[ -n "$X" ] && apt-get purge -y $X >/dev/null 2>&1   # back to the exact clean package set
 echo "$a $c $p $(dpkg -l | grep -c '^ii')"
 SH
 )

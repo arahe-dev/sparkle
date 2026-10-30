@@ -1,0 +1,4 @@
+{"test":"s14","variant":"plain","metric":"apt_update_ms","value":121086,"unit":"ms","run":0,"note":""}
+{"test":"s14","variant":"plain","metric":"apt_lists_bytes","value":54782048,"unit":"count","run":0,"note":""}
+{"test":"s14","variant":"plain","metric":"debs_count","value":134,"unit":"count","run":0,"note":""}
+{"test":"s14","variant":"plain","metric":"debs_bytes","value":111696950,"unit":"count","run":0,"note":""}

@@ -2,7 +2,7 @@
 # S10b: prove every variant holds the same system files, and record each variant's size at rest.
 # Part of S10; split out so it can be re-run after a prototype fix.
 . "$(dirname "$0")/lib/host.sh"
-sed -i '/"metric":"\(manifest_[a-z_]*\|wsl_mounts\|vhdx_bytes\|footprint_bytes\)"/d' "$RAW/s10.jsonl"
+sed -i '/"metric":"\(manifest_[a-z_]*\|wsl_mounts[a-z_]*\|vhdx_bytes\|footprint_bytes\)"/d' "$RAW/s10.jsonl"
 log "equivalence: same system files in every variant"
 for v in "${VARIANTS[@]}"; do
   wx "$(distro $v)" root "$BENCH_WSL" > "$BENCH/manifest-$v.txt" < "$REPO/bench/guest/manifest.sh"

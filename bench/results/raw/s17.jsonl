@@ -1,0 +1,9 @@
+{"test":"s17","variant":"plain","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
+{"test":"s17","variant":"plain","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
+{"test":"s17","variant":"plain","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-plainroot'"}
+{"test":"s17","variant":"tuned","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
+{"test":"s17","variant":"tuned","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
+{"test":"s17","variant":"tuned","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-tunedroot'"}
+{"test":"s17","variant":"sparkle","metric":"default_user","value":1,"unit":"pass","run":0,"note":"dev"}
+{"test":"s17","variant":"sparkle","metric":"sudo_nopasswd","value":1,"unit":"pass","run":0,"note":"ok"}
+{"test":"s17","variant":"sparkle","metric":"interop_cmd_exe","value":1,"unit":"pass","run":0,"note":"'wsl.localhostspb-sparkleroot'"}

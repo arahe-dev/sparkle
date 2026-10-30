@@ -24,10 +24,10 @@ SAMSUNG MZVL2512HDJD-00BL2
 | build_image_and_seed_ms | — | — | 13.7 s | — |
 | image_bytes | — | — | 336.0 MB | — |
 | seed_tar_bytes | — | — | 36.4 MB | — |
-| wsl_mounts_under_usr | **5** <sub>5–5, n=2</sub> | **5** <sub>5–5, n=2</sub> | **10** <sub>10–10, n=2</sub> | — |
 | manifest_meta | `ebb8feac4d2b5dc0` | `ebb8feac4d2b5dc0` | `ebb8feac4d2b5dc0` | — |
 | manifest_content | `b4173a482cb02bd8` | `b4173a482cb02bd8` | `b4173a482cb02bd8` | — |
 | manifest_entries | 38,516 | 38,516 | 38,516 | — |
+| wsl_mounts_under_usr | 5 | 5 | 10 | — |
 | vhdx_bytes | 1,117.8 MB | 1,107.3 MB | 123.7 MB | — |
 | footprint_bytes | 1,117.8 MB | 1,107.3 MB | 459.7 MB | — |
 
@@ -44,7 +44,16 @@ SAMSUNG MZVL2512HDJD-00BL2
 
 ## S12 Tool speed on the image (ms)
 
-| metric | tuned |
-|---|---|
-| full_read_usr_opt_cold_ms | 6,535 ms |
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| full_read_usr_opt_cold_ms | **5,695 ms** <sub>5,589 ms–5,936 ms, n=5</sub> | **6,415 ms** <sub>6,214 ms–6,618 ms, n=5</sub> | **6,697 ms** <sub>6,349 ms–8,442 ms, n=5</sub> |
+| metadata_walk_cold_ms | **727 ms** <sub>693 ms–734 ms, n=5</sub> | **661 ms** <sub>621 ms–715 ms, n=5</sub> | **308 ms** <sub>263 ms–594 ms, n=5</sub> |
+| python_import_rclpy_cold_ms | **454 ms** <sub>436 ms–507 ms, n=5</sub> | **428 ms** <sub>405 ms–609 ms, n=5</sub> | **982 ms** <sub>844 ms–1,455 ms, n=5</sub> |
+| ros2_pkg_list_cold_ms | **587 ms** <sub>575 ms–598 ms, n=5</sub> | **539 ms** <sub>534 ms–723 ms, n=5</sub> | **1,027 ms** <sub>855 ms–1,322 ms, n=5</sub> |
+| gxx_rclcpp_headers_cold_ms | **1,930 ms** <sub>1,895 ms–1,979 ms, n=5</sub> | **1,974 ms** <sub>1,925 ms–2,127 ms, n=5</sub> | **3,959 ms** <sub>3,594 ms–4,288 ms, n=5</sub> |
+| full_read_usr_opt_warm_ms | **578 ms** <sub>556 ms–5,907 ms, n=5</sub> | **837 ms** <sub>557 ms–6,118 ms, n=5</sub> | **979 ms** <sub>704 ms–7,345 ms, n=5</sub> |
+| metadata_walk_warm_ms | **44 ms** <sub>38 ms–50 ms, n=5</sub> | **40 ms** <sub>39 ms–41 ms, n=5</sub> | **142 ms** <sub>129 ms–298 ms, n=5</sub> |
+| python_import_rclpy_warm_ms | **170 ms** <sub>169 ms–192 ms, n=5</sub> | **159 ms** <sub>146 ms–165 ms, n=5</sub> | **208 ms** <sub>180 ms–253 ms, n=5</sub> |
+| ros2_pkg_list_warm_ms | **254 ms** <sub>249 ms–255 ms, n=5</sub> | **218 ms** <sub>207 ms–231 ms, n=5</sub> | **315 ms** <sub>306 ms–322 ms, n=5</sub> |
+| gxx_rclcpp_headers_warm_ms | **1,953 ms** <sub>1,922 ms–1,983 ms, n=5</sub> | **1,974 ms** <sub>1,891 ms–2,044 ms, n=5</sub> | **1,985 ms** <sub>1,958 ms–3,433 ms, n=5</sub> |
 
