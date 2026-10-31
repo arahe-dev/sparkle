@@ -27,6 +27,7 @@ There is no Sparkle binary yet.
 | `[boot] command` runs async; the first shell can start before it finishes | Mount the image from the stub `/usr/bin/mount` (see `proto/stub/mount`) |
 | `TaskStop`/killing the Windows side leaves Git Bash children *and* guest processes running | `ps -ef \| grep sNN` + `kill`, then check `ps` inside each distro before trusting state |
 | Benchmarks that restart WSL make Windows re-attach devices and refresh Explorer | Hold distros open (`bench/run-quiet.sh`); keep shutdowns to one per run; warn the user before S11/S16 |
+| A timed "kill during X" can fire before X starts (S16's first power cut hit while the debs were still being copied) | Poll the guest for the process (`pgrep -x dpkg`) and cut only once it's seen, and record that it was seen. Check the tool's own log (`/var/log/dpkg.log`) afterwards |
 | GitHub over HTTPS may reset on some networks | Use a proxy: `git -c http.proxy=http://127.0.0.1:8377 push` |
 
 ## Running
@@ -39,6 +40,7 @@ python bench/summarize.py            # regenerate summary.md + charts
 Most `sNN-*.sh` truncate their own `raw/sNN.jsonl` at the start, so re-running a test replaces its data. The exceptions:
 - S10 appends (`s10b-equivalence.sh` replaces its own rows).
 - S14 keeps its one-time prep rows (`run: 0`).
+- `s16-robust.sh <section>...` re-runs only those sections (`concurrent`, `power_cut`, `image_missing`, `export`) and replaces only their rows.
 
 ## Adding a benchmark
 

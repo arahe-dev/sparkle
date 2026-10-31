@@ -105,6 +105,35 @@ SAMSUNG MZVL2512HDJD-00BL2
 | footprint_after_compact_bytes | 2,252.3 MB | 2,195.7 MB | 1,571.2 MB |
 
 
+## S16 Failure modes
+
+| metric | plain | tuned | sparkle |
+|---|---|---|---|
+| concurrent_cold_ok | **4** <sub>4–4, n=5</sub> | **4** <sub>4–4, n=5</sub> | **4** <sub>4–4, n=5</sub> |
+| export_ms | 19.7 s | 18.8 s | 1,481 ms |
+| export_entries | 41,521 | 41,646 | 5,229 |
+| export_bytes | 939.2 MB | 879.3 MB | 31.9 MB |
+| power_cut_dpkg_was_running | 1 | 1 | 1 |
+| power_cut_at_ms | 7,963 ms | 7,163 ms | 8,382 ms |
+| power_cut_boots | 1 | 1 | 1 |
+| power_cut_extra_installed | 6 | 5 | 7 |
+| power_cut_extra_half_done | 2 | 3 | 1 |
+| power_cut_audit_lines_before | 12 | 10 | 8 |
+| power_cut_configure_rc | 0 | 0 | 0 |
+| power_cut_fix_rc | 0 | 0 | 0 |
+| power_cut_audit_lines_after | 0 | 0 | 0 |
+| power_cut_apt_check_rc | 0 | 0 | 0 |
+| power_cut_reinstall_rc | 0 | 0 | 0 |
+| power_cut_dpkg_after | 599 | 599 | 599 |
+| power_cut_audit_lines_final | 0 | 0 | 0 |
+| image_missing_message | — | — | 0 |
+| image_missing_error_ms | — | — | 1,880 ms |
+| image_missing_bootlog | — | — | 0 |
+| image_restored_boots | — | — | 1 |
+
+- `image_missing_message`: `sparkle: <3>WSL (19 - Relay) ERROR: CreateProcessCommon:875: execvpe(/bin/bash) failed: No such file or directory `
+- `image_missing_bootlog`: `sparkle: --- boot start uptime=1.35 pid=13 invoked: boot-command IMAGE MISSING: <bench>/image.sqfs `
+
 ## S17 Compatibility
 
 | metric | plain | tuned | sparkle |

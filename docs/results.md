@@ -39,6 +39,9 @@ Benchmark spikes S10–S17, run 2026-10-30/31.
 | `apt install` of 134 packages | 32.0 s | 34.0 s | +6% (n=3, ranges overlap) |
 | Compatibility checks | 18/18 | **18/18** | Same |
 | Cold starts that came up correctly | 20/20 | **20/20** | No failures |
+| 4 terminals opened at once, stopped distro | 20/20 | **20/20** | No failures |
+| VM killed mid-`apt install`, then `dpkg --configure -a` + `apt-get install -f` | recovered | **recovered** | n=1 each |
+| `wsl --export` (backup), file data | 19.7 s, 939 MB | **1.5 s, 32 MB** | Sparkle's leaves out the 336 MB image |
 
 **Bottom line:**
 - **Sparkle wins on space.** A fresh pack takes 59% less disk. A used pack takes about 30% less, because system files stay in a fixed-size image.
@@ -48,6 +51,7 @@ Benchmark spikes S10–S17, run 2026-10-30/31.
   - about 2× on the first read of many files after the guest cache is dropped (a Windows reboot is likely worse)
   - about 20% on warm Python/ROS command startup (30–37% vs tuned)
   - CPU-bound work (compiling, building) is the same.
+- **Failures recover like plain WSL.** A VM killed mid-install was repaired by the usual `dpkg --configure -a` + `apt-get install -f` (n=1 per variant). The one Sparkle-only failure tested, a missing image file, shows a confusing error (S16).
 - **Disk growth is not solved.** The writable disk keeps its high-water mark like any WSL disk, and compaction gains are lost on the next heavy use. The fix is designed (S18) but not measured.
 
 ## S10 — Same bytes in every variant
@@ -187,6 +191,48 @@ What the prototype's reset doesn't do yet:
 
 On plain WSL, the same package set comes back by purging to a saved list (what this harness does, leaving those `/etc` and `/var` remnants too) or by re-importing (which loses `/home`).
 
+## S16 — Failure modes
+
+What happens when things go wrong, and does the pack recover? Script: [bench/s16-robust.sh](../bench/s16-robust.sh). It kills the WSL VM 6 times when run in full.
+
+**Four terminals opened at once on a stopped distro** (5 rounds per variant): 4 of 4 came up with the image mounted in every round, on all three variants.
+
+**Power cut during `apt install`** (n = 1 per variant): the harness starts the S14 install (134 packages), waits until `dpkg` is running, waits 1 s more, then runs `wsl --shutdown`.
+
+| | plain | tuned | sparkle |
+|---|---|---|---|
+| Cut at (dpkg seen running) | 8.0 s | 7.2 s | 8.4 s |
+| Boots afterwards, image mounted | yes | yes | yes |
+| New packages fully installed / half-done | 6 / 2 | 5 / 3 | 7 / 1 |
+| `dpkg --audit` lines before repair | 12 | 10 | 8 |
+| `dpkg --configure -a`, `apt-get install -f`, `apt-get check` | all rc 0 | all rc 0 | all rc 0 |
+| `dpkg --audit` lines after repair | 0 | 0 | 0 |
+| Same install run again, on the repaired system | rc 0 | rc 0 | rc 0 |
+| Back at the 599-package baseline afterwards | yes | yes | yes |
+
+- The cut really landed mid-install: on every variant, 8 of the 134 packages the install adds were fully or partly installed afterwards.
+- Sparkle's overlay recovered the same way as a plain ext4 root. The standard repair (`dpkg --configure -a`, then `apt-get install -f`) was enough, and nothing Sparkle-specific was needed. `dpkg --audit` was checked only after both steps, so this doesn't show which one did the work.
+- `wsl --shutdown` kills the VM, not the host. Writes the VM had already handed to Windows may still have reached the disk. A real power loss of the laptop was not tested.
+- Each cut lands at one moment in the install, so n = 1 per variant shows that recovery *can* work, not that it always does.
+
+**Image file missing** (sparkle only; the image was moved away, then put back):
+- What the user sees, 1.9 s after launching: `execvpe(/bin/bash) failed: No such file or directory`. This doesn't say what is wrong. WSL starts the shell before the boot script has given up waiting for the image.
+- The boot log does name the cause: `IMAGE MISSING: <path>`, logged after the boot script's 5 s wait.
+- With the image back in place, the pack boots and the image mounts again (n=1). The writable disk was not checked separately.
+
+**`wsl --export`** (what most WSL users do for backups):
+
+| | plain | tuned | sparkle |
+|---|---|---|---|
+| Time | 19.7 s | 18.8 s | **1.5 s** |
+| Entries in the archive (files, dirs, links) | 41,521 | 41,646 | 5,229 |
+| File data (sum of member sizes, not the archive size) | 939 MB | 879 MB | **32 MB** |
+
+- Sparkle's export holds only the writable disk: `/etc`, `/var`, `/home` and anything installed over the image. The image (336 MB, S10) is not in it. **A Sparkle backup is that export plus the image file**, or the image's name, if it can be pulled again.
+- Restoring an export with `wsl --import` was not tested for any variant.
+
+An earlier full run of S16 had a test bug. Its power cut fired 6 s after starting the install, but copying the `.deb` files to RAM takes longer than that, so dpkg had never started (`/var/log/dpkg.log` showed no activity; those rows were replaced by the re-run and not kept). It also read the boot log before the "image missing" line was written. Both were fixed, and only those two sections were re-run. The concurrent-start and export rows come from the first run.
+
 ## S17 — Compatibility (every check on every variant)
 
 All 18 checks pass on all three variants:
@@ -207,16 +253,6 @@ Earlier runs of S17 had three test bugs, fixed before these results:
 - `cmd.exe` swallowed the rest of the test script from stdin.
 - Two "ping/capabilities" checks could not fail, because this image has no `ping`. They were removed.
 
-## Not yet run
-
-**S16, failure modes:**
-- power cut during `apt install`
-- image file missing
-- 4 terminals opening at once
-- `wsl --export` of a Sparkle pack
-
-The harness is ready ([bench/s16-robust.sh](../bench/s16-robust.sh)), but it kills the WSL VM several times. On the test machine that disconnects and reconnects virtual devices and refreshes File Explorer, so it runs only on request.
-
 ## What changes in the design
 
 1. **Boot (done in [proto/](../proto)):** park and restore all WSL mounts under `/usr` and `/opt`; re-link `wslpath`/`wslinfo`; `umask 022`; seed `/` at mode 755.
@@ -229,4 +265,5 @@ The harness is ready ([bench/s16-robust.sh](../bench/s16-robust.sh)), but it kil
    - background pre-read of `/opt/ros` and `/usr/include` after boot (costs RAM)
    - erofs, or squashfs with larger blocks or no compression for hot trees
    - measuring a host-cold first read
-4. **tmpfs paths cost about 100 MB of RAM** and empty the apt lists on every boot, so Sparkle's package command must refresh them. Shipping current lists with each image avoids a slow first `apt update`.
+4. **A missing image must fail loudly** (S16). The user saw only `execvpe(/bin/bash) failed`. The `sparkle` CLI should check the image before it launches a pack and say what is missing and how to get it back. Backups need the image too, or its name, since `wsl --export` leaves it out.
+5. **tmpfs paths cost about 100 MB of RAM** and empty the apt lists on every boot, so Sparkle's package command must refresh them. Shipping current lists with each image avoids a slow first `apt update`.

@@ -42,6 +42,8 @@ Same ROS 2 Jazzy `/usr` and `/opt` (byte-identical, verified by hash), as a plai
 | Same, warm | 1× | Python/ROS **~20% slower**; C++ compile the same |
 | `colcon build`, `apt install` (134 pkgs) | 20.2 s, 32.0 s | 18.0 s, 34.0 s (ranges overlap) |
 | nvidia-smi, OpenGL D3D12, WSLg, interop, ROS pub/sub… | 18/18 checks | 18/18 checks |
+| VM killed mid-`apt install`; 4 terminals opened at once | recovers; 20/20 | recovers; 20/20 |
+| `wsl --export` backup (file data) | 19.7 s, 939 MB | 1.5 s, 32 MB **+ the 336 MB image** |
 
 ![Disk space a ROS 2 pack takes on Windows](bench/results/footprint.svg)
 
@@ -53,6 +55,7 @@ Same ROS 2 Jazzy `/usr` and `/opt` (byte-identical, verified by hash), as a plai
   - about 20% on warm Python/ROS startup
 - **Not solved yet:**
   - The writable disk still keeps its high-water mark.
+  - If the image file goes missing, the user only sees `execvpe(/bin/bash) failed`. The boot log names the cause, but the CLI must say it up front.
   - Reset doesn't yet clear `/etc` and `/var`, or shrink the file.
 
 The fix is designed (spike S18) but not measured. Full numbers and caveats: [docs/results.md](docs/results.md).

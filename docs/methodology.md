@@ -58,6 +58,9 @@ These paths hold scratch that tools can recreate. The trade-off is RAM use, plus
   - Both events can only have *grown* `plain`'s disk relative to the others. That is why S15 reports `df` (data really stored) next to the file size, and why the fresh sizes come from S10, before any of it.
 - **The Sparkle distro was patched in place.** The S10 equivalence check found four prototype bugs. They were fixed in the live `spb-sparkle` (boot script, two directory modes, `/` mode) instead of rebuilding it. S10 was then re-run and matched. `proto/` contains the fixed version, so a fresh build gets the same result without patching.
 
+- **"Power cut" means a VM kill.** S16 cuts with `wsl --shutdown` while dpkg is running. That kills the Linux VM, but Windows keeps running, so writes already handed to Windows can still land. Pulling the laptop's power was not tested. There is one cut per variant, each at a single moment in the install.
+- **Two S16 sections were re-run.** In the first full run, the power cut came before dpkg started, and the boot log was read too early. Only those sections were fixed and re-run (`bash bench/s16-robust.sh power_cut` / `image_missing`), so their rows come from a later run than the concurrent-start and export rows.
+
 - **One machine, one image.** All numbers come from a single laptop (see `bench/results/machine.txt`) and the ROS base image. A slower disk or a much bigger image would change the absolute numbers. The direction should hold, but that isn't proven.
 - **"Cold" means guest-cold.** Without admin rights, the Windows file cache can't be dropped. The guest page cache *is* dropped before each cold step. The image is a file on NTFS, so its blocks can still sit in the Windows cache, which flatters `sparkle` on cold reads. A truly cold first read after a Windows reboot has not been measured. The earlier S7 spike's 4.6 s vs 3.7 s was a different setup (`/usr` only), and its host-cache state wasn't recorded.
 - **Synthetic use.** S15's "rounds of use" are a scripted mix: install packages, build a workspace, run a node, import Python modules, then clean up. Real use is messier. That likely means *more* growth than S15 shows, because untidy users leave more behind.
@@ -69,6 +72,7 @@ These paths hold scratch that tools can recreate. The trade-off is RAM use, plus
   - Docker/Podman inside a pack
   - RViz/Gazebo
   - images other than ROS base
+  - restoring a `wsl --export` backup
 
 ## Reproduce
 
