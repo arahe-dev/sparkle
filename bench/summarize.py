@@ -72,7 +72,7 @@ def table(rows, test):
         groups[m][r["variant"]].append(r["value"])
         if r.get("note") and not r["note"].startswith("rc=0"):
             notes[m].append(f'{r["variant"]}: {r["note"]}')
-    cols = [v for v in VARIANTS + ["all"] if any(v in groups[m] for m in order)]
+    cols = [v for v in VARIANTS + ["old", "up", "all"] if any(v in groups[m] for m in order)]
     out = ["| metric | " + " | ".join(cols) + " |", "|---|" + "---|" * len(cols)]
     for m in order:
         if test == "s17":

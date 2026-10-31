@@ -175,3 +175,63 @@ SAMSUNG MZVL2512HDJD-00BL2
 - `wslg_wayland`: `plain: WAYLAND_DISPLAY=wayland-0, socket ok`; `sparkle: WAYLAND_DISPLAY=wayland-0, socket ok`; `tuned: WAYLAND_DISPLAY=wayland-0, socket ok`
 - `gpu_opengl_d3d12`: `plain: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `sparkle: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `tuned: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`
 - `tmp_is`: `sparkle: tmpfs`; `tuned: tmpfs`
+
+## S18 Reclaimable upper layer
+
+| metric | old | up |
+|---|---|---|
+| footprint_bytes_fresh | 482,791,424 | 490,393,600 |
+| vhdx_bytes_fresh | 146,800,640 | 146,800,640 |
+| dpkg_installed_fresh | 599 | 599 |
+| dpkg_audit_lines_fresh | 0 | 0 |
+| extra_vs_baseline_fresh | 0 | 0 |
+| upper_used_bytes_fresh | -1 | 163,840 |
+| ok_drive_c_fresh | 1 | 1 |
+| ok_wslpath_fresh | 1 | 1 |
+| ok_gpu_dxg_fresh | 1 | 1 |
+| ros2_pkgs_fresh | 194 | 194 |
+| ok_etc_overlay_fresh | 0 | 1 |
+| ok_varlib_overlay_fresh | 0 | 1 |
+| upper_alloc_bytes_fresh | — | 7,602,176 |
+| install_ms | **37.7 s** <sub>35.2 s–40.2 s, n=2</sub> | **60.5 s** <sub>60.5 s–60.5 s, n=2</sub> |
+| install_df_delta_bytes | **509.4 MB** <sub>509.0 MB–509.8 MB, n=2</sub> | **0.2 MB** <sub>0.1 MB–0.2 MB, n=2</sub> |
+| dpkg_installed | **733** <sub>733–733, n=2</sub> | **733** <sub>733–733, n=2</sub> |
+| dpkg_audit_lines | **0** <sub>0–0, n=2</sub> | **0** <sub>0–0, n=2</sub> |
+| footprint_bytes_installed1 | 1,153,880,064 | 1,626,787,840 |
+| vhdx_bytes_installed1 | 817,889,280 | 146,800,640 |
+| upper_alloc_bytes_installed1 | — | 1,144,520,704 |
+| reset_boot_ms | **1,960 ms** <sub>1,617 ms–2,302 ms, n=2</sub> | **1,897 ms** <sub>1,735 ms–2,059 ms, n=2</sub> |
+| footprint_bytes_reset1 | 1,153,880,064 | 490,393,600 |
+| vhdx_bytes_reset1 | 817,889,280 | 146,800,640 |
+| upper_alloc_bytes_reset1 | — | 7,602,176 |
+| dpkg_installed_reset1 | 599 | 599 |
+| dpkg_audit_lines_reset1 | 0 | 0 |
+| extra_vs_baseline_reset1 | 0 | 0 |
+| upper_used_bytes_reset1 | -1 | 163,840 |
+| ok_drive_c_reset1 | 1 | 1 |
+| ok_wslpath_reset1 | 1 | 1 |
+| ok_gpu_dxg_reset1 | 1 | 1 |
+| ros2_pkgs_reset1 | 194 | 194 |
+| ok_etc_overlay_reset1 | 0 | 1 |
+| ok_varlib_overlay_reset1 | 0 | 1 |
+| footprint_bytes_installed2 | 1,321,652,224 | 1,856,884,736 |
+| vhdx_bytes_installed2 | 985,661,440 | 146,800,640 |
+| footprint_bytes_reset2 | 1,321,652,224 | 490,393,600 |
+| vhdx_bytes_reset2 | 985,661,440 | 146,800,640 |
+| dpkg_installed_reset2 | 599 | 599 |
+| dpkg_audit_lines_reset2 | 0 | 0 |
+| extra_vs_baseline_reset2 | 0 | 0 |
+| upper_used_bytes_reset2 | -1 | 163,840 |
+| ok_drive_c_reset2 | 1 | 1 |
+| ok_wslpath_reset2 | 1 | 1 |
+| ok_gpu_dxg_reset2 | 1 | 1 |
+| ros2_pkgs_reset2 | 194 | 194 |
+| ok_etc_overlay_reset2 | 0 | 1 |
+| ok_varlib_overlay_reset2 | 0 | 1 |
+| upper_alloc_bytes_installed2 | — | 1,374,814,208 |
+| upper_alloc_bytes_reset2 | — | 7,602,176 |
+| startup_ms | **720 ms** <sub>611 ms–1,007 ms, n=3</sub> | **811 ms** <sub>801 ms–817 ms, n=3</sub> |
+| vhdx_bytes_compact | 482,344,960 | 131,072,000 |
+| vhdx_bytes_fstrim_compact | 482,344,960 | 133,169,152 |
+| footprint_bytes_fstrim_compact | 818,335,744 | 568,250,368 |
+

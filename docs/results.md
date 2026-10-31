@@ -253,6 +253,36 @@ Earlier runs of S17 had three test bugs, fixed before these results:
 - `cmd.exe` swallowed the rest of the test script from stdin.
 - Two "ping/capabilities" checks could not fail, because this image has no `ping`. They were removed.
 
+## S18 — Reclaimable upper layer (provisional: n = 1 per stage, other sessions running)
+
+**Question:** if the overlay's upper layer lives in its own file, does reset give the space back to Windows?
+
+Two packs were built from the same `image.sqfs` + `seed.tar`:
+- `old`: the upper layer is on the seed disk, as in S10–S17. Reset wipes it in place.
+- `up`: the writes over `/usr`, `/opt`, `/etc` and `/var/lib` go to a sparse 64 GiB ext4 file next to the image (`/.sparkle/upper-img`, [proto/stub/init.sh](../proto/stub/init.sh)). Reset deletes that file and creates a new empty sparse one.
+
+Footprint = image + seed `ext4.vhdx` + allocated bytes of the upper file (not its 64 GiB apparent size). Source: `bench/results/raw/s18.jsonl`, `bash bench/s18-reclaim.sh`.
+
+| Windows-side footprint | old | up |
+|---|---|---|
+| fresh | 483 MB | 490 MB |
+| after S14 install | 1,154 MB | 1,627 MB |
+| after reset | **1,154 MB** | **490 MB** |
+| after 2nd install | 1,322 MB | 1,857 MB |
+| after 2nd reset | **1,322 MB** | **490 MB** |
+| then `--compact` (distro stopped) | 818 MB | 568 MB |
+
+- **Reset gives the space back, exactly, every time.** `up` returned to its fresh 490,393,600 bytes after both resets. `old` kept the high-water mark (1.32 GB after two rounds), as in S15.
+- **Package state is clean after reset** on both: 599 packages, `dpkg --audit` empty, 0 packages beyond the baseline. On `up`, `/etc` and `/var/lib` are overlays too, so package configs and dpkg/apt state go with the file.
+- **Basics still work** on `up` after each reset: `/mnt/c`, `wslpath`, `/dev/dxg`, and `ros2 pkg list` (194 packages, same as `old`).
+- **But the upper file is wasteful while in use.** The install allocated 1.14 GB in the upper file, versus 0.67 GB of growth on `old`'s disk for the same packages. Likely cause: ext4's lazy inode-table init zeroes the inode tables of the whole 64 GiB filesystem in the background after mount, and every zeroed block is allocated on NTFS. The idle upper file kept growing (568 MB footprint after the compaction step, up from 490 MB at boot), which fits that cause. Not yet fixed. Next things to try: `mount -o noinit_itable`, fewer inodes (`mke2fs -N`), or a smaller filesystem that grows.
+- **Installs were slower:** 60.5 s on `up` vs 35–40 s on `old` (n = 2, other sessions running). Writes go through a loop device on a file on 9p/drvfs.
+- **Startup:** 811 ms vs 720 ms (n = 3, ranges overlap: 801–817 vs 611–1,007). Inconclusive.
+- **`fstrim` before `--compact` added nothing.** On `old`, `--compact` alone took the disk from 986 MB to 482 MB, and `fstrim` + `--compact` left it at 482 MB. Compaction ran with only the distro stopped (`wsl -t`), not the VM. It still left `old` 335 MB above fresh.
+- **Findings on the way:**
+  - A file extended from inside WSL (`truncate` on drvfs) is allocated in full on NTFS. A 64 GiB `truncate` failed with "No space left on device". The host has to create the file sparse (`fsutil sparse setflag` + `fsutil file seteof`), so a guest-only reset can't recreate it. In the prototype, `touch /.sparkle/reset` on an upper-file pack deletes the file, and the next boot falls back to the seed disk until the host makes a new one.
+  - The cached `seed.tar` imports with `/` at mode 700, so user `dev` got `chdir(/) failed 13`. `chmod 755 /` was applied to both S18 distros before the run. Design item 1 says this was fixed in `proto/`, but the cached seed predates the fix.
+
 ## What changes in the design
 
 1. **Boot (done in [proto/](../proto)):** park and restore all WSL mounts under `/usr` and `/opt`; re-link `wslpath`/`wslinfo`; `umask 022`; seed `/` at mode 755.
