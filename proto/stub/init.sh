@@ -38,4 +38,4 @@ done < /.sparkle/park.list
 for l in sbin/mount.drvfs bin/wslpath bin/wslinfo; do [ -e /usr/$l ] || $B ln -s /init /usr/$l; done
 /usr/sbin/ldconfig
 read up _ </proc/uptime; echo "--- boot done uptime=$up"
-[ -f /.sparkle/prewarm.sh ] && $B nice -n 19 $B sh /.sparkle/prewarm.sh </dev/null >/dev/null 2>&1 &   # S19: warm ROS/C++/Python
+[ -f /.sparkle/prewarm.on ] && $B nice -n 19 $B sh /.sparkle/prewarm.sh </dev/null >/dev/null 2>&1 &   # S19: opt-in, see results

@@ -175,3 +175,36 @@ SAMSUNG MZVL2512HDJD-00BL2
 - `wslg_wayland`: `plain: WAYLAND_DISPLAY=wayland-0, socket ok`; `sparkle: WAYLAND_DISPLAY=wayland-0, socket ok`; `tuned: WAYLAND_DISPLAY=wayland-0, socket ok`
 - `gpu_opengl_d3d12`: `plain: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `sparkle: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`; `tuned: OpenGL renderer string: D3D12 (NVIDIA GeForce RTX 4060 Laptop GPU)`
 - `tmp_is`: `sparkle: tmpfs`; `tuned: tmpfs`
+
+## S19 Cold-read cost by image format, and prewarm (ms)
+
+| metric | plain | sq128 | sq1m | sqraw | erolz4 | eroraw | sqraw_direct |
+|---|---|---|---|---|---|---|---|
+| build_ms | — | — | 13.7 s | 11.6 s | 170.0 s | 202.4 s | — |
+| image_bytes | — | 336.0 MB | 324.2 MB | 848.7 MB | 460.0 MB | 864.9 MB | — |
+| tree_bytes | 860.0 MB | — | — | — | — | — | — |
+| metadata_walk_cold | **718 ms** <sub>698 ms–809 ms, n=5</sub> | **385 ms** <sub>250 ms–747 ms, n=5</sub> | **427 ms** <sub>234 ms–859 ms, n=5</sub> | **272 ms** <sub>222 ms–610 ms, n=5</sub> | **831 ms** <sub>418 ms–1,219 ms, n=5</sub> | **870 ms** <sub>693 ms–1,178 ms, n=5</sub> | **301 ms** <sub>218 ms–456 ms, n=5</sub> |
+| python_import_rclpy_cold | **469 ms** <sub>455 ms–480 ms, n=5</sub> | **991 ms** <sub>875 ms–1,055 ms, n=5</sub> | **1,151 ms** <sub>1,013 ms–2,137 ms, n=5</sub> | **1,265 ms** <sub>1,237 ms–1,341 ms, n=5</sub> | **682 ms** <sub>474 ms–767 ms, n=5</sub> | **770 ms** <sub>652 ms–1,183 ms, n=5</sub> | **1,305 ms** <sub>668 ms–1,456 ms, n=5</sub> |
+| ros2_pkg_list_cold | **603 ms** <sub>589 ms–643 ms, n=5</sub> | **1,241 ms** <sub>991 ms–1,425 ms, n=5</sub> | **1,554 ms** <sub>1,282 ms–1,824 ms, n=5</sub> | **1,238 ms** <sub>1,200 ms–1,490 ms, n=5</sub> | **1,049 ms** <sub>858 ms–1,209 ms, n=5</sub> | **1,030 ms** <sub>662 ms–1,327 ms, n=5</sub> | **1,536 ms** <sub>1,320 ms–1,768 ms, n=5</sub> |
+| gxx_rclcpp_headers_cold | **2,118 ms** <sub>2,058 ms–2,167 ms, n=5</sub> | **3,997 ms** <sub>3,923 ms–4,543 ms, n=5</sub> | **4,684 ms** <sub>4,292 ms–5,767 ms, n=5</sub> | **4,277 ms** <sub>4,115 ms–4,844 ms, n=5</sub> | **2,745 ms** <sub>2,344 ms–2,814 ms, n=5</sub> | **2,885 ms** <sub>2,505 ms–3,185 ms, n=5</sub> | **4,853 ms** <sub>4,177 ms–5,149 ms, n=5</sub> |
+| metadata_walk_warm | **39 ms** <sub>37 ms–51 ms, n=5</sub> | **98 ms** <sub>85 ms–212 ms, n=5</sub> | **177 ms** <sub>86 ms–231 ms, n=5</sub> | **96 ms** <sub>84 ms–120 ms, n=5</sub> | **35 ms** <sub>35 ms–47 ms, n=5</sub> | **36 ms** <sub>34 ms–48 ms, n=5</sub> | **166 ms** <sub>83 ms–233 ms, n=5</sub> |
+| python_import_rclpy_warm | **153 ms** <sub>151 ms–236 ms, n=5</sub> | **224 ms** <sub>175 ms–1,079 ms, n=5</sub> | **197 ms** <sub>179 ms–370 ms, n=5</sub> | **231 ms** <sub>183 ms–256 ms, n=5</sub> | **168 ms** <sub>165 ms–253 ms, n=5</sub> | **163 ms** <sub>159 ms–248 ms, n=5</sub> | **206 ms** <sub>193 ms–290 ms, n=5</sub> |
+| ros2_pkg_list_warm | **298 ms** <sub>218 ms–387 ms, n=5</sub> | **323 ms** <sub>239 ms–857 ms, n=5</sub> | **282 ms** <sub>249 ms–479 ms, n=5</sub> | **418 ms** <sub>261 ms–544 ms, n=5</sub> | **231 ms** <sub>219 ms–368 ms, n=5</sub> | **234 ms** <sub>224 ms–341 ms, n=5</sub> | **284 ms** <sub>245 ms–467 ms, n=5</sub> |
+| gxx_rclcpp_headers_warm | **2,083 ms** <sub>1,875 ms–3,844 ms, n=5</sub> | **2,820 ms** <sub>1,847 ms–5,395 ms, n=5</sub> | **2,423 ms** <sub>1,817 ms–3,646 ms, n=5</sub> | **1,930 ms** <sub>1,831 ms–3,273 ms, n=5</sub> | **1,946 ms** <sub>1,802 ms–3,563 ms, n=5</sub> | **2,058 ms** <sub>1,842 ms–3,414 ms, n=5</sub> | **1,955 ms** <sub>1,853 ms–3,991 ms, n=5</sub> |
+| prewarm_metadata_walk_ms_prew | — | **2,097 ms** <sub>1,735 ms–2,269 ms, n=5</sub> | — | — | — | **5,679 ms** <sub>5,246 ms–9,322 ms, n=5</sub> | — |
+| prewarm_metadata_walk_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–351, n=5</sub> | — |
+| metadata_walk_prew | — | **335 ms** <sub>241 ms–509 ms, n=5</sub> | — | — | — | **294 ms** <sub>210 ms–390 ms, n=5</sub> | — |
+| prewarm_python_import_rclpy_ms_prew | — | **1,927 ms** <sub>1,705 ms–2,114 ms, n=5</sub> | — | — | — | **5,886 ms** <sub>5,145 ms–6,557 ms, n=5</sub> | — |
+| prewarm_python_import_rclpy_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>-363–330, n=5</sub> | — |
+| python_import_rclpy_prew | — | **522 ms** <sub>449 ms–796 ms, n=5</sub> | — | — | — | **474 ms** <sub>333 ms–612 ms, n=5</sub> | — |
+| prewarm_ros2_pkg_list_ms_prew | — | **2,060 ms** <sub>1,894 ms–2,443 ms, n=5</sub> | — | — | — | **5,350 ms** <sub>5,033 ms–6,576 ms, n=5</sub> | — |
+| prewarm_ros2_pkg_list_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
+| ros2_pkg_list_prew | — | **719 ms** <sub>553 ms–1,101 ms, n=5</sub> | — | — | — | **528 ms** <sub>467 ms–780 ms, n=5</sub> | — |
+| prewarm_gxx_rclcpp_headers_ms_prew | — | **1,984 ms** <sub>1,614 ms–2,214 ms, n=5</sub> | — | — | — | **5,220 ms** <sub>4,648 ms–6,046 ms, n=5</sub> | — |
+| prewarm_gxx_rclcpp_headers_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
+| gxx_rclcpp_headers_prew | — | **3,784 ms** <sub>3,404 ms–3,797 ms, n=5</sub> | — | — | — | **2,504 ms** <sub>2,443 ms–2,586 ms, n=5</sub> | — |
+| metadata_walk_race | — | **2,667 ms** <sub>2,282 ms–3,202 ms, n=5</sub> | — | — | — | **1,381 ms** <sub>1,305 ms–1,667 ms, n=5</sub> | — |
+| python_import_rclpy_race | — | **2,607 ms** <sub>1,776 ms–3,620 ms, n=5</sub> | — | — | — | **1,144 ms** <sub>975 ms–1,228 ms, n=5</sub> | — |
+| ros2_pkg_list_race | — | **2,900 ms** <sub>2,658 ms–4,220 ms, n=5</sub> | — | — | — | **1,405 ms** <sub>1,204 ms–2,222 ms, n=5</sub> | — |
+| gxx_rclcpp_headers_race | — | **5,743 ms** <sub>5,529 ms–6,201 ms, n=5</sub> | — | — | — | **3,016 ms** <sub>2,723 ms–3,116 ms, n=5</sub> | — |
+

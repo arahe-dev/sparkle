@@ -253,6 +253,57 @@ Earlier runs of S17 had three test bugs, fixed before these results:
 - `cmd.exe` swallowed the rest of the test script from stdin.
 - Two "ping/capabilities" checks could not fail, because this image has no `ping`. They were removed.
 
+## S19 — Removing the speed cost: image format and prewarm (n = 5, provisional)
+
+**Provisional:** these runs shared the PC and the WSL VM with three other benchmark sessions, so they carry extra noise. Variants were interleaved, so the noise hits all of them, but read only large gaps as real.
+
+Setup: one bench distro holds every variant side by side (`bench/guest/s19-setup.sh`). Each variant's `/usr` + `/opt` is cut from the same tree. The image variants are files on NTFS, loop-mounted under an overlay with a tmpfs upper, as Sparkle mounts them. `plain` is the same tree copied onto the distro's ext4. Commands run in a `chroot` of each variant, through `su - dev -c` like S12. S12's full-read row was left out to fit the time box. Medians:
+
+| | plain ext4 | **sq128** (today) | sq1m | sqraw | **erolz4** | eroraw | sqraw, no overlay |
+|---|---|---|---|---|---|---|---|
+| Image size | (tree 860 MB) | 336 MB | 324 MB | 849 MB | **460 MB** | 865 MB | (849 MB) |
+| `find` over `/usr` + `/opt`, cold | 718 ms | 385 ms | 427 ms | 272 ms | 831 ms | 870 ms | 301 ms |
+| Login shell + `import rclpy`, cold | 469 ms | 991 ms | 1,151 ms | 1,265 ms | **682 ms** | 770 ms | 1,305 ms |
+| Login shell + `ros2 pkg list`, cold | 603 ms | 1,241 ms | 1,554 ms | 1,238 ms | **1,049 ms** | 1,030 ms | 1,536 ms |
+| `g++` on rclcpp headers, cold | 2.12 s | 4.00 s | 4.68 s | 4.28 s | **2.75 s** | 2.89 s | 4.85 s |
+| `find`, warm | 39 ms | 98 ms | 177 ms | 96 ms | **35 ms** | 36 ms | 166 ms |
+| `import rclpy`, warm | 153 ms | 224 ms | 197 ms | 231 ms | **168 ms** | 163 ms | 206 ms |
+| `ros2 pkg list`, warm | 298 ms | 323 ms | 282 ms | 418 ms | **231 ms** | 234 ms | 284 ms |
+| `g++` on rclcpp headers, warm | 2.08 s | 2.82 s | 2.42 s | 1.93 s | 1.95 s | 2.06 s | 1.96 s |
+
+`sq128` = today's squashfs (lz4hc, 128 KiB blocks); `sq1m` = 1 MiB blocks; `sqraw` = squashfs with no compression; `erolz4` = erofs `-zlz4hc`; `eroraw` = erofs uncompressed. Image builds: squashfs 12–14 s, erofs 170–200 s (single-threaded `mkfs.erofs`).
+
+**How to read this:**
+- **The cold cost is squashfs, not compression.** Uncompressed squashfs is no faster than lz4hc, and 1 MiB blocks are slower. erofs on the same file, under the same overlay, cuts the cold gap to plain by 30–67%: `import rclpy` +213 ms instead of +522 ms, `ros2 pkg list` +446 ms instead of +638 ms, the header compile +0.63 s instead of +1.88 s. The kernel is built with `SQUASHFS_DECOMP_SINGLE` (one decompressor at a time), which may be part of it; that wasn't isolated.
+- **The warm cost is squashfs too, not the overlay.** erofs under the overlay is level with plain when warm (`find` 35 vs 39 ms, `import rclpy` 168 vs 153 ms, inside the noise). Dropping the overlay from uncompressed squashfs (`sqraw, no overlay`) doesn't help. The overlay-lookup hypothesis is not supported.
+- **Cold `find` is the one place squashfs wins** (385 vs 831 ms for erofs). erofs is about level with plain there.
+- **Cold still isn't plain.** erofs leaves `ros2 pkg list` about 1.7× plain cold.
+- **The warm `g++` row is noisy** (ranges up to 3.8–5.4 s in single runs). Don't read the warm compile differences.
+
+### Prewarm (`proto/stub/prewarm.sh`)
+
+It reads `/opt/ros`, `/usr/include` and the Python stdlib and `dist-packages` at `nice 19`. Each cell drops the guest cache first. "After" = prewarm ran to completion, then the command. "During" = prewarm started in the background and the command started at once (a command typed right after boot).
+
+| | sq128 | eroraw |
+|---|---|---|
+| Time to warm | 1.9–2.1 s | 5.2–5.9 s |
+| Page cache it adds | 524 MB | 330 MB |
+| `import rclpy`: cold / after / during | 991 / 522 / **2,607** ms | 770 / 474 / **1,144** ms |
+| `ros2 pkg list`: cold / after / during | 1,241 / 719 / **2,900** ms | 1,030 / 528 / **1,405** ms |
+| `g++` on headers: cold / after / during | 4.00 / 3.78 / **5.74** s | 2.89 / 2.50 / **3.02** s |
+
+- **Once it's finished, prewarm brings Python and ROS to about plain cold.** It barely helps `g++`, which also reads the compiler and libraries outside the prewarmed set.
+- **While it's running, it makes things worse: 2–2.6× slower than cold.** The first command is the one a user notices, so prewarm hurts the case it was meant to fix.
+- **It costs 330–524 MB of page cache.** On squashfs it's more, likely because the loop device caches the image file as well as the decompressed files. The kernel can reclaim it, but it's RAM taken at boot.
+- One `eroraw` cache-delta sample came out negative (−363 MB): something else on the VM freed cache during that run. The other samples agree.
+
+### Recommendation
+
+- **Switch the image to erofs with lz4hc.** It removes all of the warm cost and most of the cold cost. Disk: 460 MB vs 336 MB, +124 MB (+37%) per image, which still leaves the image about half the size of the tree. Image builds are about 12× slower (170 s vs 14 s); `mkfs.erofs` has multithreaded options that weren't tried.
+  - **A blocker first:** WSL's kernel builds erofs as a module (`CONFIG_EROFS_FS=m`), not built in. In this test it was loaded with `insmod` from another distro. Inside a pack booted from today's seed, `/usr/lib/modules/<kernel>` was missing, so the pack can't load it itself yet. The boot path must load `erofs.ko` from WSL's modules mount before the image mounts, or fall back to squashfs.
+  - The erofs images were loop-mounted (util-linux sets up a loop for a regular file). erofs's file-backed mode (`CONFIG_EROFS_FS_BACKED_BY_FILE=y`) skips the loop device and wasn't tried; it may cut the double caching.
+- **Don't turn prewarm on by default.** It slows the first command while it runs, and it costs 330–524 MB of RAM. It ships as opt-in: `init.sh` starts it only if `/.sparkle/prewarm.on` exists.
+
 ## What changes in the design
 
 1. **Boot (done in [proto/](../proto)):** park and restore all WSL mounts under `/usr` and `/opt`; re-link `wslpath`/`wslinfo`; `umask 022`; seed `/` at mode 755.
