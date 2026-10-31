@@ -7,6 +7,8 @@
 set -eu
 D=$1 S=/var/s19
 mkdir -p $S
+# This seed imported with / at 0700, which stops `su - dev` (see S19 notes); the pack wants 0755.
+chmod 755 /
 [ -d $S/plain/usr ] || { mkdir -p $S/plain; cp -a /mnt/wsl/s19-tree/root/. $S/plain/; }
 for v in plain sq128 sq1m sqraw erolz4 eroraw sqraw_direct; do
   R=/mnt/s19/$v
