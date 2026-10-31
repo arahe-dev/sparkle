@@ -157,7 +157,7 @@ def main():
         md.append("")
     OUT.write_text("\n".join(md), encoding="utf-8", newline="\n")
     svg_chart(lifecycle(rows), RES / "footprint.svg",
-              "Disk space a ROS 2 pack takes on Windows")
+              "Disk space a ROS 2 pack takes on Windows" if RES == ROOT / "results" else "Disk space a pack takes on Windows")
     print(f"wrote {OUT}")
 
 

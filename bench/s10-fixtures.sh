@@ -15,7 +15,7 @@ machine_facts
 # Re-runs skip variants that already exist; unregister one to rebuild it.
 exists() { wsl.exe -l -q 2>/dev/null | tr -d '\0\r' | grep -qx "$(distro $1)"; }
 [ -f "$BB" ] || { echo "need a static busybox at $BB (see docs/methodology.md)"; exit 1; }
-rec s10 all busybox_sha256 "\"$(sha256sum "$BB" | cut -c1-64)\"" text
+rec s10 all busybox_sha256 "\"$(sha256sum < "$BB" | cut -c1-64)\"" text
 
 log "keep the helper distro alive; extract the image into tmpfs"
 wsl.exe -d "$TOOL" -u root -- sleep 7200 & KEEP=$!

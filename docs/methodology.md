@@ -92,6 +92,8 @@ Limits that apply only to these runs:
 - **Different check list.** S12 and S17 swap the ROS tools for Python/C ones (stdlib imports, `pip`, `venv`, `gcc`). There is no `sudo` check, because `python:*` images do not ship `sudo`. The WSLg/OpenGL user checks (`s17-user.sh`) still run; `glxinfo` is not in this image, so the OpenGL row fails on every variant by design.
 - **`apt install` here is online** (`apt-get update` + `jq` from deb.debian.org), not from a local .deb set like the ROS S17. It depends on the network.
 - **The image pull failed once.** The first `crane pull` ended with `unexpected EOF` after 10 minutes on this network. It was re-run with a layer cache, pinned to the digest it had resolved: `python:3.12-bookworm@sha256:034c3e9d991f148d14c32ff8350286b91420baca7757d37819c7a9cc771317a0` (linux/amd64).
+- **The shared disk filled up mid-run.** At 22:21, C: reached 100% while S20 wrote a 1 GB export tar. The plain distro imported then had no `dev` user. S20 now streams `wsl --export` into `wsl --import` with no tar on disk, and plain was restored again under a new name (`spb2i-restore2-plain`). The broken first import was left in place, not deleted. S10, S11, S12 and S17 had finished before the disk filled; S12 was re-run afterwards anyway, for a test bug.
+- **On this image, plain is the odd one out on warm Python steps** (4–5× slower than tuned and sparkle). The cause was not found. The Python comparison in results.md is made against tuned.
 - **S20 restore is n = 1 per case, on one PC.** "Image in a different folder" is simulated by rewriting `/.sparkle/image` to a folder with no image, then to a copy in a new folder. A restore onto a second PC was not tested.
 
 ## Reproduce

@@ -1,4 +1,4 @@
-{"test":"s10","variant":"all","metric":"busybox_sha256","value":"\3d366d1a2e500f188f0fe72e5fa2020db800c3f1654c697e55026c565f642a4","unit":"text","run":0,"note":""}
+{"test":"s10","variant":"all","metric":"busybox_sha256","value":"3d366d1a2e500f188f0fe72e5fa2020db800c3f1654c697e55026c565f642a42","unit":"text","run":0,"note":""}
 {"test":"s10","variant":"all","metric":"flatten_extract_ms","value":6816,"unit":"ms","run":0,"note":""}
 {"test":"s10","variant":"all","metric":"tree_apparent_mb","value":964,"unit":"MB","run":0,"note":""}
 {"test":"s10","variant":"plain","metric":"import_ms","value":4157,"unit":"ms","run":0,"note":""}

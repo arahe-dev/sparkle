@@ -253,6 +253,88 @@ Earlier runs of S17 had three test bugs, fixed before these results:
 - `cmd.exe` swallowed the rest of the test script from stdin.
 - Two "ping/capabilities" checks could not fail, because this image has no `ping`. They were removed.
 
+## Second image: `python:3.12-bookworm` (Debian 12, no ROS)
+
+Does the layout hold for an image that isn't Ubuntu or ROS? Run 2026-10-31 with `bash bench/run-python.sh`, same machine.
+- Numbers come from [bench/results-python/summary.md](../bench/results-python/summary.md), generated from [bench/results-python/raw/](../bench/results-python/raw).
+- Image: `python:3.12-bookworm@sha256:034c3e9d…317a0` (linux/amd64), a 964 MB tree with Python 3.12.16 in `/usr/local` and gcc.
+- **Provisional.** Three other benchmark sessions shared the WSL VM and laptop during these runs. Variants were interleaved, so the load hit all three, but the absolute times are noisier than the ROS runs.
+- No `wsl --shutdown`, so there are no VM-cold rows. n = 5 per cell.
+- Limits are in [methodology.md](methodology.md#second-image-python312-bookworm-and-s20-exportrestore).
+
+No change to `proto/` was needed. The stub, `init.sh` and the build script worked as-is on Debian. The harness change is image-profile knobs: probe file, guest scripts, tree path, and no VM restarts. The defaults are the ROS image's.
+
+| Headline | ROS image (above) | Python image | Holds? |
+|---|---|---|---|
+| Same bytes in every variant (S10) | yes | **yes**: 27,542 entries, meta + content hashes equal | yes |
+| Disk on Windows, fresh: plain → sparkle | 1,118 → 460 MB, **−59%** | 1,221 → 526 MB, **−57%** (412 MB image + 113 MB disk) | yes |
+| Start a stopped distro (VM up) | 536 → 640 ms, +103 ms | 608 → 703 ms, **+95 ms** | yes |
+| Run a command in a running distro | same | 166 vs 165 ms, same | yes |
+| New login shell | +184 ms (ROS `setup.bash` reads from the image) | 172 vs 157 ms, no penalty (nothing to source) | n/a |
+| Walk metadata, cold | 0.59× (faster) | 498 → 259 ms, **0.52×** (faster) | yes |
+| Read all of `/usr` + `/opt`, cold | 1.13× | 5.50 → 7.41 s, **1.35×** | yes, a bit worse |
+| Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 118 → 302 ms, **2.6×**; stdlib import 3.1× vs tuned | yes, a bit worse |
+| Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 27 vs 28 ms, same; stdlib import 79 vs tuned 73 ms (+8%) | yes |
+| Walk metadata, warm | 4.5× (39 → 177 ms) | 2.8× (26 → 74 ms) | yes |
+| Compatibility (S17) | 18/18 | **18/20 on every variant**. The 2 failures are the same on all three (see below) | yes |
+
+**So the result is not ROS-specific.** The disk saving, start-time cost, and the "slower cold, same warm" shape all repeat on a Debian image with a different layout (`/usr/local`, empty `/opt`).
+
+S12 (tool speed, ms, median of 5):
+
+| | plain | tuned | sparkle |
+|---|---|---|---|
+| Read all of `/usr` + `/opt`, cold / warm | 5,500 / 645 | 5,229 / 502 | 7,412 / 623 |
+| Walk metadata, cold / warm | 498 / 26 | 445 / 26 | 259 / 74 |
+| Login shell + import 11 stdlib modules, cold / warm | 464 / 350 | 133 / 73 | 409 / 79 |
+| Login shell + `pip --version`, cold / warm | 713 / 548 | 204 / 130 | 553 / 131 |
+| `gcc -O2` small C file, cold / warm | 118 / 27 | 81 / 28 | 302 / 28 |
+
+**Unexplained:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (350 vs 73–79 ms). Tuned differs from plain only in its tmpfs paths, so something on plain's disk-backed scratch paths costs time. This was not investigated. The fair comparison for Python steps is therefore sparkle vs **tuned**: about 3× slower cold, about the same warm.
+
+S17: all three variants pass the same 18 checks:
+- default user, `cmd.exe` interop, `/mnt/c`, `wslpath`, `wslinfo`, DNS
+- `nvidia-smi -L`, `/dev/dxg`, WSLg X11 and Wayland sockets
+- Python 3.12.16, pip 25.0.1, stdlib (sqlite 3.40.1, OpenSSL), `venv`, gcc hello-world
+- `dpkg --audit` clean, `apt-get check`
+
+Two checks fail, and they fail identically on all three variants:
+- `gpu_opengl_d3d12`: this image has no `glxinfo`. Expected.
+- `apt_install_jq`: `apt-get update` failed (`Some index files failed to download`, rc=100). This is the network, not the layout. The offline `.deb` install that S14 measures on the ROS image was not repeated here.
+
+### Export and restore (S20)
+
+S16 timed `wsl --export` but never restored a backup. S20 exports each variant, imports it as a new distro and boots it. It ran on the Python image; the steps don't depend on the image.
+
+| | plain | sparkle |
+|---|---|---|
+| Export stream size | 1,047.5 MB | **22.7 MB** |
+| Export piped into `wsl --import` | 25.0 s | 1.6 s |
+| Restored distro boots, image mounted, `python3 --version` runs as `dev` | yes (693 ms) | **yes** (940 ms) |
+
+What a Sparkle backup does and doesn't contain:
+- **`wsl --export` of a pack does not contain the image.** It holds only the small writable disk: the seed, `/etc`, `/home`, `/var` and the overlay's upper layer. The 412 MB image is a separate file on NTFS. The pack finds it by the absolute path in `/.sparkle/image`.
+- **The image still in place:** the restored pack works unchanged (row `restored_*`).
+- **The image not at that path** (another PC, or the folder moved): boot fails. A command returns rc=1 in 380 ms, and `/.sparkle/boot.log` says `IMAGE MISSING: <path>`. This is the same failure as S16's missing image (row `moved_image_*`).
+- **Fix:** put the image anywhere, write its WSL path into `/.sparkle/image`, then `wsl -t <distro>`. The next start mounts it and Python runs (row `repointed_*`, 667 ms). The write uses `/.sparkle/bin/busybox`, because nothing under `/usr` exists while the image is missing.
+
+Backup procedure for a Sparkle pack, as tested here (n = 1 per case; a restore onto a second PC was not tried):
+
+```
+wsl --export <pack> pack.tar                  # small: user data + writable layer
+copy <image.sqfs> to the backup next to it      # the image is NOT in pack.tar
+# restore:
+wsl --import <pack> <dir> pack.tar --version 2
+wsl -d <pack> -u root --exec /.sparkle/bin/busybox sh -c 'echo /mnt/c/<new path>/image.sqfs > /.sparkle/image'
+wsl -t <pack>
+```
+
+For the real tool, this means `sparkle export` should bundle the image, or record its digest so the image can be re-fetched. It should also re-point `/.sparkle/image` on import.
+
+What went wrong during these runs, recorded rather than hidden:
+- **The first restore of `plain` came out broken** (no `dev` user, rc=127). C: had filled to 100% during its import: the 1 GB export tar was written while the shared disk was nearly full. After freeing space, S20 streamed the export straight into the import (no tar on disk) and restored plain again as `spb2i-restore2-plain`. The plain row above is from that second import. A full disk during `wsl --import` gives a distro that imports "successfully" but is unusable.
+- Two test bugs were fixed and the affected steps re-run. The first S12 C program didn't compile (rc=1 on every variant). The first S20 re-point step called a bare `cat` that doesn't exist before the image is mounted.
+
 ## What changes in the design
 
 1. **Boot (done in [proto/](../proto)):** park and restore all WSL mounts under `/usr` and `/opt`; re-link `wslpath`/`wslinfo`; `umask 022`; seed `/` at mode 755.
