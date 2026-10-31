@@ -8,7 +8,7 @@
 IMAGE_TAR=${1:?usage: s10-fixtures.sh <image.tar> [crane.exe] [busybox]}
 CRANE=${2:-crane.exe}
 BB=${3:-$BENCH/busybox}
-T=/mnt/wsl/spb-tree
+T=${SPARKLE_TREE:-/mnt/wsl/spb-tree}   # in the helper distro; parallel sessions need their own
 [ -f "$RAW/s10.jsonl" ] || : > "$RAW/s10.jsonl"
 machine_facts
 

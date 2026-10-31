@@ -11,6 +11,11 @@ REPO_WSL=$(to_wsl "$REPO")
 RAW=${SPARKLE_RAW_DIR:-$REPO/bench/results/raw}   # parallel sessions: give each its own
 TOOL=${SPARKLE_TOOL_DISTRO:-sparkle-s1-ours2}   # any distro with mksquashfs >= 4.6
 VARIANTS=(plain tuned sparkle)
+# Image profile. Defaults are the ROS image; other images set these (see docs/methodology.md).
+PROBE=${SPARKLE_PROBE:-/opt/ros/jazzy/setup.bash}   # a file that exists only once the image is mounted
+GUEST=${SPARKLE_GUEST:-}   # guest-script suffix: bench/guest/s12$GUEST.sh, s17$GUEST.sh
+# SPARKLE_NO_SHUTDOWN=1: never restart the shared VM; restart only our own distros (wsl -t).
+stop_all() { local v; if [ -n "${SPARKLE_NO_SHUTDOWN:-}" ]; then for v in "${VARIANTS[@]}"; do wsl.exe -t "$(distro $v)" >/dev/null 2>&1 || true; done; else wsl.exe --shutdown; fi; }
 mkdir -p "$RAW" "$BENCH"
 
 # Parallel sessions on one PC must not share distros: set SPARKLE_PREFIX (e.g. spb18).
@@ -43,4 +48,4 @@ machine_facts() {
   { echo "date: $(date -u +%FT%TZ)"
     wsl.exe --version 2>/dev/null | tr -d '\0\r' | head -3
     powershell.exe -NoProfile -Command "(Get-CimInstance Win32_Processor).Name; '{0:N0} GB RAM' -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB); (Get-CimInstance Win32_OperatingSystem).Caption; (Get-PhysicalDisk | Select -First 1).FriendlyName" 2>/dev/null | tr -d '\r'
-  } > "$REPO/bench/results/machine.txt"; }
+  } > "$(dirname "$RAW")/machine.txt"; }
