@@ -323,7 +323,13 @@ fn add(home: &Path, name: &str, image: &str, wsl: &mut dyn Wsl) -> Res<()> {
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let r = build_and_import(home, name, image, &dir, &crane, &bb, &tar, &tool, wsl);
     if r.is_err() {
-        eprintln!("sparkle: add failed; partial files left in {} for inspection", dir.display());
+        // The folder was made by this run and holds only build output; keep it only if the
+        // distro got registered (then `eject` cleans up both).
+        if wsl.list()?.iter().any(|x| x.eq_ignore_ascii_case(&d)) {
+            eprintln!("sparkle: add failed after import; run `sparkle eject {name}` to clean up");
+        } else {
+            let _ = fs::remove_dir_all(&dir);
+        }
     }
     let (t_flat, t_build, t_imp) = r?;
     let total = secs(t_all);

@@ -2,7 +2,7 @@
 
 **Disposable, smaller WSL environments for ROS and other Linux work, one command each.**
 
-> **Status: design + working boot prototype + reproducible benchmarks. There is no `sparkle` CLI yet.**
+> **Status: design + working boot prototype + reproducible benchmarks + a first `sparkle` CLI ([cli/](cli)): `add`, `enter`, `ls`, `reset`, `eject` work end to end on one PC. `add ros` takes ~23 s once the image is downloaded (not yet the 15 s goal), plus the download.**
 > This repo publishes the measurements behind the design, including the ones that don't favour it, so you can check them before anything ships.
 
 ## The problem
@@ -55,7 +55,7 @@ Same ROS 2 Jazzy `/usr` and `/opt` (byte-identical, verified by hash), as a plai
   - about 20% on warm Python/ROS startup
 - **Not solved yet:**
   - The writable disk still keeps its high-water mark.
-  - If the image file goes missing, the user only sees `execvpe(/bin/bash) failed`. The boot log names the cause, but the CLI must say it up front.
+  - If the image file goes missing, WSL itself only says `execvpe(/bin/bash) failed`. `sparkle enter` now checks first and names the missing file.
   - Reset doesn't yet clear `/etc` and `/var`, or shrink the file.
 
 The fix is designed (spike S18) but not measured. Full numbers and caveats: [docs/results.md](docs/results.md).
@@ -102,6 +102,7 @@ Warnings:
 | [docs/design.md](docs/design.md) | Sparkle v1 design (Rust CLI, OCI images, catalog, networking) and spikes S1–S9 |
 | [docs/results.md](docs/results.md) | Benchmark results S10–S17 and the design changes they forced |
 | [docs/methodology.md](docs/methodology.md) | How the benchmarks were run, and their limits |
+| [cli/](cli) | The `sparkle` CLI (Rust, first cut) and its end-to-end run |
 | [proto/](proto) | The boot prototype: stub `mount`, `init.sh`, fixture builder |
 | [bench/](bench) | The harness: one script per spike, guest scripts, raw results, summarizer |
 | [AGENTS.md](AGENTS.md) | Ground rules and pitfalls for agents (and humans) working here |
