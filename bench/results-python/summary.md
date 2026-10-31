@@ -36,25 +36,25 @@ SAMSUNG MZVL2512HDJD-00BL2
 
 | metric | plain | tuned | sparkle |
 |---|---|---|---|
-| distro_cold_ms | **608 ms** <sub>588 ms–664 ms, n=5</sub> | **560 ms** <sub>496 ms–714 ms, n=5</sub> | **703 ms** <sub>598 ms–784 ms, n=5</sub> |
-| warm_ms | **166 ms** <sub>157 ms–232 ms, n=5</sub> | **178 ms** <sub>156 ms–216 ms, n=5</sub> | **165 ms** <sub>148 ms–174 ms, n=5</sub> |
-| login_shell_ms | **172 ms** <sub>151 ms–198 ms, n=5</sub> | **171 ms** <sub>152 ms–209 ms, n=5</sub> | **157 ms** <sub>153 ms–175 ms, n=5</sub> |
+| distro_cold_ms | **490 ms** <sub>458 ms–969 ms, n=5</sub> | **545 ms** <sub>479 ms–726 ms, n=5</sub> | **713 ms** <sub>519 ms–935 ms, n=5</sub> |
+| warm_ms | **193 ms** <sub>176 ms–195 ms, n=5</sub> | **184 ms** <sub>175 ms–224 ms, n=5</sub> | **195 ms** <sub>184 ms–210 ms, n=5</sub> |
+| login_shell_ms | **197 ms** <sub>190 ms–219 ms, n=5</sub> | **186 ms** <sub>170 ms–196 ms, n=5</sub> | **181 ms** <sub>174 ms–218 ms, n=5</sub> |
 
 
 ## S12 Tool speed on the image (ms)
 
 | metric | plain | tuned | sparkle |
 |---|---|---|---|
-| full_read_usr_opt_cold_ms | **5,500 ms** <sub>5,382 ms–6,031 ms, n=5</sub> | **5,229 ms** <sub>4,850 ms–5,826 ms, n=5</sub> | **7,412 ms** <sub>6,763 ms–7,883 ms, n=5</sub> |
-| metadata_walk_cold_ms | **498 ms** <sub>407 ms–534 ms, n=5</sub> | **445 ms** <sub>414 ms–476 ms, n=5</sub> | **259 ms** <sub>150 ms–470 ms, n=5</sub> |
-| python_import_stdlib_cold_ms | **464 ms** <sub>458 ms–574 ms, n=5</sub> | **133 ms** <sub>126 ms–494 ms, n=5</sub> | **409 ms** <sub>230 ms–1,054 ms, n=5</sub> |
-| pip_version_cold_ms | **713 ms** <sub>678 ms–826 ms, n=5</sub> | **204 ms** <sub>188 ms–562 ms, n=5</sub> | **553 ms** <sub>424 ms–1,051 ms, n=5</sub> |
-| gcc_compile_c_cold_ms | **118 ms** <sub>112 ms–128 ms, n=5</sub> | **81 ms** <sub>76 ms–87 ms, n=5</sub> | **302 ms** <sub>243 ms–369 ms, n=5</sub> |
-| full_read_usr_opt_warm_ms | **645 ms** <sub>536 ms–1,184 ms, n=5</sub> | **502 ms** <sub>489 ms–635 ms, n=5</sub> | **623 ms** <sub>610 ms–719 ms, n=5</sub> |
-| metadata_walk_warm_ms | **26 ms** <sub>25 ms–33 ms, n=5</sub> | **26 ms** <sub>25 ms–37 ms, n=5</sub> | **74 ms** <sub>54 ms–109 ms, n=5</sub> |
-| python_import_stdlib_warm_ms | **350 ms** <sub>341 ms–367 ms, n=5</sub> | **73 ms** <sub>68 ms–83 ms, n=5</sub> | **79 ms** <sub>75 ms–90 ms, n=5</sub> |
-| pip_version_warm_ms | **548 ms** <sub>539 ms–564 ms, n=5</sub> | **130 ms** <sub>128 ms–146 ms, n=5</sub> | **131 ms** <sub>131 ms–137 ms, n=5</sub> |
-| gcc_compile_c_warm_ms | **27 ms** <sub>26 ms–29 ms, n=5</sub> | **28 ms** <sub>28 ms–30 ms, n=5</sub> | **28 ms** <sub>27 ms–30 ms, n=5</sub> |
+| full_read_usr_opt_cold_ms | **5,229 ms** <sub>5,126 ms–5,430 ms, n=5</sub> | **4,973 ms** <sub>4,811 ms–5,044 ms, n=5</sub> | **7,304 ms** <sub>6,568 ms–7,622 ms, n=5</sub> |
+| metadata_walk_cold_ms | **413 ms** <sub>398 ms–453 ms, n=5</sub> | **420 ms** <sub>411 ms–434 ms, n=5</sub> | **141 ms** <sub>131 ms–254 ms, n=5</sub> |
+| python_import_stdlib_cold_ms | **452 ms** <sub>437 ms–495 ms, n=5</sub> | **135 ms** <sub>126 ms–464 ms, n=5</sub> | **235 ms** <sub>232 ms–1,111 ms, n=5</sub> |
+| pip_version_cold_ms | **698 ms** <sub>682 ms–710 ms, n=5</sub> | **192 ms** <sub>186 ms–482 ms, n=5</sub> | **871 ms** <sub>613 ms–968 ms, n=5</sub> |
+| gcc_compile_c_cold_ms | **112 ms** <sub>109 ms–127 ms, n=5</sub> | **79 ms** <sub>77 ms–80 ms, n=5</sub> | **367 ms** <sub>188 ms–681 ms, n=5</sub> |
+| full_read_usr_opt_warm_ms | **490 ms** <sub>459 ms–526 ms, n=5</sub> | **490 ms** <sub>473 ms–532 ms, n=5</sub> | **675 ms** <sub>613 ms–1,094 ms, n=5</sub> |
+| metadata_walk_warm_ms | **25 ms** <sub>24 ms–27 ms, n=5</sub> | **25 ms** <sub>24 ms–29 ms, n=5</sub> | **57 ms** <sub>52 ms–125 ms, n=5</sub> |
+| python_import_stdlib_warm_ms | **348 ms** <sub>339 ms–350 ms, n=5</sub> | **71 ms** <sub>69 ms–74 ms, n=5</sub> | **75 ms** <sub>74 ms–81 ms, n=5</sub> |
+| pip_version_warm_ms | **541 ms** <sub>533 ms–555 ms, n=5</sub> | **130 ms** <sub>129 ms–133 ms, n=5</sub> | **131 ms** <sub>125 ms–134 ms, n=5</sub> |
+| gcc_compile_c_warm_ms | **28 ms** <sub>27 ms–28 ms, n=5</sub> | **29 ms** <sub>26 ms–30 ms, n=5</sub> | **27 ms** <sub>26 ms–29 ms, n=5</sub> |
 
 
 ## S17 Compatibility

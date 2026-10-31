@@ -260,6 +260,7 @@ Does the layout hold for an image that isn't Ubuntu or ROS? Run 2026-10-31 with 
 - Image: `python:3.12-bookworm@sha256:034c3e9d…317a0` (linux/amd64), a 964 MB tree with Python 3.12.16 in `/usr/local` and gcc.
 - **Provisional.** Three other benchmark sessions shared the WSL VM and laptop during these runs. Variants were interleaved, so the load hit all three, but the absolute times are noisier than the ROS runs.
 - No `wsl --shutdown`, so there are no VM-cold rows. n = 5 per cell.
+- S11 and S12 were re-run at 22:37–22:40, once the other sessions were idle and C: had space again. The tables show that re-run. The first run (S11 at 22:20, S12 at 22:30) is in git history at commit f998d24, `bench/results-python/raw/`.
 - **Not run (time box):** S11 VM-cold, S13 build, S14 apt timing, S15 growth/compaction/reset, S16 failure modes, offline `.deb` install, restore onto a second PC.
 - Limits are in [methodology.md](methodology.md#second-image-python312-bookworm-and-s20-exportrestore).
 
@@ -269,29 +270,29 @@ No change to `proto/` was needed. The stub, `init.sh` and the build script worke
 |---|---|---|---|
 | Same bytes in every variant (S10) | yes | **yes**: 27,542 entries, meta + content hashes equal | yes |
 | Disk on Windows, fresh: plain → sparkle | 1,118 → 460 MB, **−59%** | 1,221 → 526 MB, **−57%** (412 MB image + 113 MB disk) | yes |
-| Start a stopped distro (VM up) | 536 → 640 ms, +103 ms | 608 → 703 ms, **+95 ms** | yes |
-| Run a command in a running distro | same | 166 vs 165 ms, same | yes |
-| New login shell | +184 ms (ROS `setup.bash` reads from the image) | 172 vs 157 ms, no penalty (nothing to source) | n/a |
-| Walk metadata, cold | 0.59× (faster) | 498 → 259 ms, **0.52×** (faster) | yes |
-| Read all of `/usr` + `/opt`, cold | 1.13× | 5.50 → 7.41 s, **1.35×** | yes, a bit worse |
-| Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 118 → 302 ms, **2.6×**; stdlib import 3.1× vs tuned | yes, a bit worse |
-| Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 27 vs 28 ms, same; stdlib import 79 vs tuned 73 ms (+8%) | yes |
-| Walk metadata, warm | 4.5× (39 → 177 ms) | 2.8× (26 → 74 ms) | yes |
+| Start a stopped distro (VM up) | 536 → 640 ms, +103 ms | 490 → 713 ms, **+223 ms** (wide ranges: plain 458–969, sparkle 519–935 ms). The first run, at 22:20, gave 608 → 703, +95 ms | yes, cost possibly larger |
+| Run a command in a running distro | same | 193 vs 195 ms, same | yes |
+| New login shell | +184 ms (ROS `setup.bash` reads from the image) | 197 vs 181 ms, no penalty (nothing to source) | n/a |
+| Walk metadata, cold | 0.59× (faster) | 413 → 141 ms, **0.34×** (faster) | yes |
+| Read all of `/usr` + `/opt`, cold | 1.13× | 5.23 → 7.30 s, **1.40×** | yes, a bit worse |
+| Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 112 → 367 ms, **3.3×**; vs tuned: stdlib import 1.7×, `pip --version` 4.5× | yes, worse |
+| Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 28 vs 27 ms, same; stdlib import 75 vs tuned 71 ms (+6%); pip same | yes |
+| Walk metadata, warm | 4.5× (39 → 177 ms) | 2.3× (25 → 57 ms) | yes |
 | Compatibility (S17) | 18/18 | **18/20 on every variant**. The 2 failures are the same on all three (see below) | yes |
 
-**So the result is not ROS-specific.** The disk saving, start-time cost, and the "slower cold, same warm" shape all repeat on a Debian image with a different layout (`/usr/local`, empty `/opt`).
+**So the result is not ROS-specific.** The disk saving, a start-time cost, and the "slower cold, same warm" shape all repeat on a Debian image with a different layout (`/usr/local`, empty `/opt`).
 
 S12 (tool speed, ms, median of 5):
 
 | | plain | tuned | sparkle |
 |---|---|---|---|
-| Read all of `/usr` + `/opt`, cold / warm | 5,500 / 645 | 5,229 / 502 | 7,412 / 623 |
-| Walk metadata, cold / warm | 498 / 26 | 445 / 26 | 259 / 74 |
-| Login shell + import 11 stdlib modules, cold / warm | 464 / 350 | 133 / 73 | 409 / 79 |
-| Login shell + `pip --version`, cold / warm | 713 / 548 | 204 / 130 | 553 / 131 |
-| `gcc -O2` small C file, cold / warm | 118 / 27 | 81 / 28 | 302 / 28 |
+| Read all of `/usr` + `/opt`, cold / warm | 5,229 / 490 | 4,973 / 490 | 7,304 / 675 |
+| Walk metadata, cold / warm | 413 / 25 | 420 / 25 | 141 / 57 |
+| Login shell + import 11 stdlib modules, cold / warm | 452 / 348 | 135 / 71 | 235 / 75 |
+| Login shell + `pip --version`, cold / warm | 698 / 541 | 192 / 130 | 871 / 131 |
+| `gcc -O2` small C file, cold / warm | 112 / 28 | 79 / 29 | 367 / 27 |
 
-**Unexplained:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (350 vs 73–79 ms). Tuned differs from plain only in its tmpfs paths, so something on plain's disk-backed scratch paths costs time. This was not investigated. The fair comparison for Python steps is therefore sparkle vs **tuned**: about 3× slower cold, about the same warm.
+**Unexplained:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (348 vs 71–75 ms). Tuned differs from plain only in its tmpfs paths, so something on plain's disk-backed scratch paths costs time. This was not investigated. The fair comparison for Python steps is therefore sparkle vs **tuned**: 1.7–4.5× slower cold, about the same warm. Cold sparkle times have wide ranges (for example `gcc` 188–681 ms).
 
 S17: all three variants pass the same 18 checks:
 - default user, `cmd.exe` interop, `/mnt/c`, `wslpath`, `wslinfo`, DNS
