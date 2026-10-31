@@ -31,7 +31,7 @@ sparkle)
   install -m 755 "$P/stub/mount" "$ST/usr/bin/mount"
   install -m 755 "$P/stub/ldconfig" "$ST/usr/sbin/ldconfig"
   ln -s /.sparkle/bin/busybox "$ST/usr/bin/sh"
-  cp "$P/stub/init.sh" "$ST/.sparkle/init.sh"
+  cp "$P/stub/init.sh" "$P/stub/prewarm.sh" "$ST/.sparkle/"
   echo "$OUT/image.sqfs" > "$ST/.sparkle/image"
   cp -a "$T/var/lib/dpkg" "$ST/.sparkle/dpkg.seed"
   printf '[user]\ndefault=dev\n[boot]\ncommand = /.sparkle/bin/busybox sh /.sparkle/init.sh\n' > "$ST/etc/wsl.conf"
