@@ -292,7 +292,7 @@ S12 (tool speed, ms, median of 5):
 | Login shell + `pip --version`, cold / warm | 698 / 541 | 192 / 130 | 871 / 131 |
 | `gcc -O2` small C file, cold / warm | 112 / 28 | 79 / 29 | 367 / 27 |
 
-**Unexplained:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (348 vs 71–75 ms). Tuned differs from plain only in its tmpfs paths, so something on plain's disk-backed scratch paths costs time. This was not investigated. The fair comparison for Python steps is therefore sparkle vs **tuned**: 1.7–4.5× slower cold, about the same warm. Cold sparkle times have wide ranges (for example `gcc` 188–681 ms).
+**Why plain is slow on Python here:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (348 vs 71–75 ms). The official `python` image deletes its compiled `.pyc` files (0 under `/usr/local/lib/python3.12`, checked after the run), and user `dev` can't write there. So on plain, Python recompiles every module it imports, on every run. Tuned and sparkle set `PYTHONPYCACHEPREFIX` to `/tmp` (part of the tmpfs settings), so their compiled cache survives between runs. This is a real-world benefit of the tmpfs settings on images built like this, not of the image layout. The fair comparison for Python steps is therefore sparkle vs **tuned**: 1.7–4.5× slower cold, about the same warm. Cold sparkle times have wide ranges (for example `gcc` 188–681 ms).
 
 S17: all three variants pass the same 18 checks:
 - default user, `cmd.exe` interop, `/mnt/c`, `wslpath`, `wslinfo`, DNS
