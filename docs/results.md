@@ -260,6 +260,7 @@ Does the layout hold for an image that isn't Ubuntu or ROS? Run 2026-10-31 with 
 - Image: `python:3.12-bookworm@sha256:034c3e9d…317a0` (linux/amd64), a 964 MB tree with Python 3.12.16 in `/usr/local` and gcc.
 - **Provisional.** Three other benchmark sessions shared the WSL VM and laptop during these runs. Variants were interleaved, so the load hit all three, but the absolute times are noisier than the ROS runs.
 - No `wsl --shutdown`, so there are no VM-cold rows. n = 5 per cell.
+- **Not run (time box):** S11 VM-cold, S13 build, S14 apt timing, S15 growth/compaction/reset, S16 failure modes, offline `.deb` install, restore onto a second PC.
 - Limits are in [methodology.md](methodology.md#second-image-python312-bookworm-and-s20-exportrestore).
 
 No change to `proto/` was needed. The stub, `init.sh` and the build script worked as-is on Debian. The harness change is image-profile knobs: probe file, guest scripts, tree path, and no VM restarts. The defaults are the ROS image's.
