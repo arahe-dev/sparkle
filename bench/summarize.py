@@ -21,6 +21,7 @@ TITLES = {
     "s15": "S15 Disk growth over repeated use",
     "s16": "S16 Failure modes",
     "s17": "S17 Compatibility",
+    "s18": "S18 Reclaimable upper layer",
 }
 
 
