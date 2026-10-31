@@ -8,12 +8,13 @@ BENCH_WIN=$(cygpath -w "$BENCH")
 to_wsl() { local p; p=$(cygpath -m "$1"); echo "/mnt/$(echo "${p:0:1}" | tr A-Z a-z)${p:2}"; }
 BENCH_WSL=$(to_wsl "$BENCH")
 REPO_WSL=$(to_wsl "$REPO")
-RAW=$REPO/bench/results/raw
+RAW=${SPARKLE_RAW_DIR:-$REPO/bench/results/raw}   # parallel sessions: give each its own
 TOOL=${SPARKLE_TOOL_DISTRO:-sparkle-s1-ours2}   # any distro with mksquashfs >= 4.6
 VARIANTS=(plain tuned sparkle)
 mkdir -p "$RAW" "$BENCH"
 
-distro() { echo "spb-$1"; }
+# Parallel sessions on one PC must not share distros: set SPARKLE_PREFIX (e.g. spb18).
+distro() { echo "${SPARKLE_PREFIX:-spb}-$1"; }
 now_ms() { date +%s%3N; }
 since_ms() { echo $(( $(now_ms) - $1 )); }
 
