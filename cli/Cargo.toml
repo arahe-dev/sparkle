@@ -1,0 +1,8 @@
+[package]
+name = "sparkle"
+version = "0.1.0"
+edition = "2021"
+description = "Disposable, smaller WSL environments: sparkle add ros"
+license = "MIT"
+
+[dependencies]
