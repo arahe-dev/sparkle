@@ -1,0 +1,50 @@
+# Build a prebuilt pack (image.sqfs + seed.tar) from an OCI image and publish it as a release,
+# so `sparkle add` downloads it instead of building on the user's PC. Same proto/build-fixtures.sh
+# the benchmarks and the local build use.
+name: pack
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: pack name (release tag is pack-<name>)
+        default: ros
+      image:
+        description: OCI image ref (linux/amd64)
+        default: ros:jazzy-ros-base
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NAME: ${{ inputs.name }}
+      IMAGE: ${{ inputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: tools (mksquashfs 4.6, static busybox, crane)
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq squashfs-tools busybox-static
+          mksquashfs -version | head -1
+          file -L "$(command -v busybox)" | grep -q 'statically linked'
+          curl -fsSL https://github.com/google/go-containerregistry/releases/download/v0.20.2/go-containerregistry_Linux_x86_64.tar.gz | tar -xz crane
+      - name: pull and flatten
+        run: |
+          ./crane digest --platform linux/amd64 "$IMAGE" | tee digest.txt
+          ./crane pull --platform linux/amd64 "$IMAGE@$(cat digest.txt)" image.tar
+          sudo mkdir -p /mnt/tree
+          ./crane export - - < image.tar | sudo tar -xpf - -C /mnt/tree --numeric-owner --xattrs --xattrs-include='*'
+      - name: build image + seed
+        run: |
+          sudo sh proto/build-fixtures.sh setup /mnt/tree "$PWD/out"
+          sudo sh proto/build-fixtures.sh sparkle /mnt/tree "$PWD/out" "$(command -v busybox)"
+          sudo chown -R "$USER" out
+          printf '%s@%s\n' "${IMAGE%%@*}" "$(cat digest.txt)" > out/source.txt
+          cd out && sha256sum image.sqfs seed.tar source.txt > SHA256SUMS && cat SHA256SUMS && ls -l
+      - name: release
+        run: |
+          tag="pack-$NAME"
+          notes="Prebuilt Sparkle pack \`$NAME\` from \`$(cat out/source.txt)\`, built by $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID from commit $GITHUB_SHA. \`sparkle add $NAME\` downloads it and checks SHA256SUMS."
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "pack: $NAME" --notes "$notes" --prerelease
+          gh release edit "$tag" --notes "$notes"
+          gh release upload "$tag" out/image.sqfs out/seed.tar out/source.txt out/SHA256SUMS --clobber

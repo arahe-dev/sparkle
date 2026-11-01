@@ -2,7 +2,7 @@
 
 **Disposable, smaller WSL environments for ROS and other Linux work, one command each.**
 
-> **Status: early. A first `sparkle` CLI ([cli/](cli)) works end to end on one PC: `add`, `enter`, `ls`, `reset`, `eject`. `add ros` takes ~22 s once the image is downloaded (the goal is 15 s), plus the download. It needs a helper distro with `mksquashfs`, and there is no release binary yet.**
+> **Status: early. A first `sparkle` CLI ([cli/](cli)) works end to end on one PC: `add`, `enter`, `ls`, `reset`, `eject`. `add ros` downloads a prebuilt pack built by CI ([.github/workflows/pack.yml](.github/workflows/pack.yml)) and is ready in ~2 s plus the 372 MB download; building on your PC (`--build`) takes ~22 s and needs a helper distro with `mksquashfs`. No release binary yet.**
 > This repo publishes the measurements behind the design, including the ones that don't favour it, so you can check them before anything ships.
 
 ## The problem

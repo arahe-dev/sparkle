@@ -41,7 +41,9 @@ fn main() -> ExitCode {
 }
 
 const USAGE: &str = "usage:
-  sparkle add <name> [--image <ref>]   pull an OCI image and make it a pack (WSL distro sparkle-<name>)
+  sparkle add <name>                   download the prebuilt pack <name> (today: ros) and import it
+  sparkle add <name> --image <ref>     build a pack on this PC from an OCI image (needs crane + helper distro)
+  sparkle add <name> --build           build <name>'s default image on this PC instead of downloading
   sparkle enter <name> [-- cmd...]     open a shell in the pack (or run cmd)
   sparkle ls                           list packs with on-disk size and image
   sparkle reset <name>                 drop everything installed over the image (applies on next start)
@@ -54,12 +56,16 @@ fn run(args: &[String], wsl: &mut dyn Wsl) -> Res<u8> {
     let cmd = args.first().map(String::as_str).unwrap_or("");
     let home = home_dir()?;
     match (cmd, args.len()) {
-        ("add", 2 | 4) => {
+        ("add", 2..=4) => {
             let name = valid_name(&args[1])?;
-            let image = match args.get(2).map(String::as_str) {
-                Some("--image") => args[3].clone(),
-                Some(o) => return Err(format!("unknown option {o}\n{USAGE}")),
-                None => default_image(name)?,
+            let image = match (args.get(2).map(String::as_str), args.len()) {
+                (Some("--image"), 4) => args[3].clone(),
+                (Some("--build"), 3) => default_image(name)?,
+                (None, 2) => match prebuilt_url(name) {
+                    Some(base) => return add_prebuilt(&home, name, &base, wsl).map(|_| 0),
+                    None => default_image(name)?,
+                },
+                _ => return Err(format!("bad arguments to add\n{USAGE}")),
             };
             add(&home, name, &image, wsl).map(|_| 0)
         }
@@ -122,6 +128,17 @@ fn default_image(name: &str) -> Res<String> {
         _ if name.starts_with("clitest") => Ok("ros:jazzy-ros-base".into()),
         _ => Err(format!("no default image for {name:?}: pass --image <ref>")),
     }
+}
+
+/// Where the prebuilt pack <name> is published (a GitHub release built by .github/workflows/pack.yml).
+/// SPARKLE_PACK_URL overrides the base URL (a mirror, or file:///C:/... for testing).
+fn prebuilt_url(name: &str) -> Option<String> {
+    let tag = match name {
+        "ros" | "ros2" | "jazzy" => "pack-ros",
+        _ => return None,
+    };
+    Some(env::var("SPARKLE_PACK_URL")
+        .unwrap_or_else(|_| format!("https://github.com/arahe-dev/sparkle/releases/download/{tag}")))
 }
 
 /// C:\Users\x\f -> /mnt/c/Users/x/f (WSL's default automount).
@@ -402,6 +419,122 @@ fn build_and_import(
     Ok((t_flat, t_build, t_imp))
 }
 
+/// Download one file with curl.exe (ships with Windows; honours HTTPS_PROXY), resuming a partial.
+/// `stubborn` also retries non-transient errors (connection resets mid-file); not for a first probe,
+/// where a 404 should fail at once.
+fn fetch(url: &str, dest: &Path, stubborn: bool) -> Res<()> {
+    let part = dest.with_extension("part");
+    let mut c = Command::new("curl.exe");
+    c.args(["-fL", "--retry", "5", "-C", "-", "--progress-bar", "-o"]);
+    if stubborn {
+        c.arg("--retry-all-errors");
+    }
+    let st = c
+        .arg(&part)
+        .arg(url)
+        .status()
+        .map_err(|e| format!("curl.exe: {e}"))?;
+    if !st.success() {
+        return Err(format!("download failed: {url} ({st})"));
+    }
+    fs::rename(&part, dest).map_err(|e| e.to_string())
+}
+
+/// SHA-256 of a file, via certutil (ships with Windows; std has no hashing).
+fn sha256(p: &Path) -> Res<String> {
+    let o = Command::new("certutil").arg("-hashfile").arg(p).arg("SHA256").output()
+        .map_err(|e| format!("certutil: {e}"))?;
+    parse_certutil(&String::from_utf8_lossy(&o.stdout))
+        .ok_or_else(|| format!("certutil gave no SHA256 for {}", p.display()))
+}
+
+fn parse_certutil(out: &str) -> Option<String> {
+    out.lines()
+        .map(|l| l.replace(' ', "").trim().to_ascii_lowercase())
+        .find(|l| l.len() == 64 && l.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+/// `sha256sum` output: "<hex>  <file>" per line.
+fn parse_sums(s: &str) -> Vec<(String, String)> {
+    s.lines()
+        .filter_map(|l| {
+            let (h, f) = l.split_once(' ')?;
+            Some((h.to_ascii_lowercase(), f.trim_start_matches([' ', '*']).trim().to_string()))
+        })
+        .collect()
+}
+
+fn add_prebuilt(home: &Path, name: &str, base: &str, wsl: &mut dyn Wsl) -> Res<()> {
+    let d = distro(name);
+    let dir = pack_dir(home, name);
+    if wsl.list()?.iter().any(|x| x.eq_ignore_ascii_case(&d)) {
+        return Err(format!("{d} already exists (sparkle eject {name} first)"));
+    }
+    if dir.exists() {
+        return Err(format!("{} already exists", dir.display()));
+    }
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let t_all = Instant::now();
+    let r = download_and_import(name, base, &dir, wsl);
+    if r.is_err() {
+        if wsl.list()?.iter().any(|x| x.eq_ignore_ascii_case(&d)) {
+            eprintln!("sparkle: add failed after import; run `sparkle eject {name}` to clean up");
+        } else {
+            let _ = fs::remove_dir_all(&dir);
+        }
+    }
+    let (t_dl, t_imp) = r?;
+    println!("added {d}: download {t_dl:.1} s, import {t_imp:.1} s, total {:.1} s", secs(t_all));
+    println!("enter it with: sparkle enter {name}");
+    Ok(())
+}
+
+fn download_and_import(name: &str, base: &str, dir: &Path, wsl: &mut dyn Wsl) -> Res<(f64, f64)> {
+    let d = distro(name);
+    let t = Instant::now();
+    println!("[1/3] downloading pack {name} from {base}");
+    fetch(&format!("{base}/SHA256SUMS"), &dir.join("SHA256SUMS"), false)
+        .map_err(|e| format!("{e}\nNo prebuilt pack reachable; to build it on this PC: sparkle add {name} --build"))?;
+    let sums = parse_sums(&fs::read_to_string(dir.join("SHA256SUMS")).map_err(|e| e.to_string())?);
+    for f in ["source.txt", "seed.tar", IMAGE] {
+        let want = sums.iter().find(|(_, n)| n == f).map(|(h, _)| h.clone())
+            .ok_or_else(|| format!("SHA256SUMS has no entry for {f}"))?;
+        let p = dir.join(f);
+        fetch(&format!("{base}/{f}"), &p, true)?;
+        let got = sha256(&p)?;
+        if got != want {
+            return Err(format!("{f}: checksum mismatch (expected {want}, got {got})"));
+        }
+    }
+    let t_dl = secs(t);
+
+    let t = Instant::now();
+    println!("[2/3] wsl --import {d}");
+    let seed = dir.join("seed.tar");
+    let (dir_s, seed_s) = (dir.to_string_lossy().to_string(), seed.to_string_lossy().to_string());
+    let rc = wsl.run(&["--import", &d, &dir_s, &seed_s, "--version", "2"])?;
+    if rc != 0 {
+        return Err(format!("wsl --import failed (exit {rc})"));
+    }
+    // The seed names the image by the path it was built at; point it at this PC's copy.
+    // Nothing under /usr exists until the image mounts, so this uses the pack's own busybox.
+    println!("[3/3] pointing the pack at {}", dir.join(IMAGE).display());
+    let img = to_wsl(&dir.join(IMAGE))?;
+    if img.contains('\'') {
+        return Err(format!("pack path {img} contains a quote"));
+    }
+    let set = format!("echo '{img}' > /.sparkle/image");
+    let rc = wsl.run(&["-d", &d, "-u", "root", "--cd", "/", "--exec", "/.sparkle/bin/busybox", "sh", "-c", &set])?;
+    wsl.run(&["-t", &d])?;
+    if rc != 0 {
+        return Err(format!("could not set the image path in {d} (exit {rc})"));
+    }
+    let source = fs::read_to_string(dir.join("source.txt")).unwrap_or_default();
+    write_meta(dir, &Meta { image_ref: source.trim().to_string(), distro: d })?;
+    let _ = fs::remove_file(&seed);
+    Ok((t_dl, secs(t)))
+}
+
 /// Why a pack can't start, or None if it can.
 fn preflight(home: &Path, name: &str, registered: &[String]) -> Option<String> {
     let dir = pack_dir(home, name);
@@ -679,6 +812,15 @@ mod tests {
         let mut w = Mock { distros: vec!["sparkle-ros".into()], ..Default::default() };
         assert!(add(&h, "ros", "ros:jazzy-ros-base", &mut w).unwrap_err().contains("already exists"));
         fs::remove_dir_all(h).unwrap();
+    }
+
+    #[test]
+    fn parses_checksums() {
+        let c = "SHA256 hash of x:\r\n9f 86 d0 81 88 4c 7d 65 9a 2f ea a0 c5 5a d0 15 a3 bf 4f 1b 2b 0b 82 2c d1 5d 6c 15 b0 f0 0a 08\r\nCertUtil: -hashfile command completed successfully.\r\n";
+        assert_eq!(parse_certutil(c).unwrap(), "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+        let s = parse_sums("AB12  image.sqfs\ncd34 *seed.tar\n");
+        assert_eq!(s, vec![("ab12".to_string(), "image.sqfs".to_string()), ("cd34".to_string(), "seed.tar".to_string())]);
+        assert!(prebuilt_url("misc").is_none());
     }
 
     #[test]

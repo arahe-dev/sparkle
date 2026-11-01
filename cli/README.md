@@ -1,16 +1,42 @@
 # sparkle CLI (v0.1, first working cut)
 
 ```
-sparkle add <name> [--image <ref>]   pull an OCI image and make it a pack (WSL distro sparkle-<name>)
+sparkle add <name>                   download the prebuilt pack <name> (today: ros) and import it
+sparkle add <name> --image <ref>     build a pack on this PC from an OCI image (needs crane + helper distro)
+sparkle add <name> --build           build <name>'s default image on this PC instead of downloading
 sparkle enter <name> [-- cmd...]     open a shell in the pack (or run cmd in a login bash)
 sparkle ls                           list packs with on-disk size (image + vhdx) and image ref
 sparkle reset <name>                 drop everything installed over the image (applies on next start)
 sparkle eject <name>                 wsl --unregister the distro, then delete its pack folder
 ```
 
-`add ros` defaults to `ros:jazzy-ros-base` (linux/amd64). Other names need `--image`.
+`add ros` downloads a prebuilt pack of `ros:jazzy-ros-base` (linux/amd64). Other names need `--image`.
 
-## How `add` works
+## Prebuilt packs (`sparkle add ros`)
+
+CI builds the pack once and publishes it; the user's PC only downloads and imports it. No crane, no helper distro, no `mksquashfs`.
+
+1. **Built by** [.github/workflows/pack.yml](../.github/workflows/pack.yml) (run by hand: `gh workflow run pack.yml -f name=ros -f image=ros:jazzy-ros-base`) on `ubuntu-24.04`. It pins the image digest, flattens it, runs the same `proto/build-fixtures.sh` as the benchmarks and the local build (with Ubuntu's `busybox-static`), and uploads `image.sqfs`, `seed.tar`, `source.txt` (image ref + digest) and `SHA256SUMS` to the release `pack-<name>`.
+2. **`add`** downloads the four files with `curl.exe` (resumes, retries; honours `HTTPS_PROXY`), checks each against `SHA256SUMS` with `certutil`, then runs `wsl --import`.
+3. **Re-point:** the seed names the image by the path it was built at, so `add` writes this PC's path into `/.sparkle/image` with the pack's own busybox, then `wsl -t`. The next start mounts the image.
+4. The pack folder keeps `image.sqfs`, `ext4.vhdx`, `SHA256SUMS`, `source.txt` and `sparkle.meta` (its `image_ref` is the pinned digest).
+
+`SPARKLE_PACK_URL` overrides the download base (a mirror, or `file:///C:/...`). `SHA256SUMS` comes from the same release, so it catches corrupt downloads, not a tampered release.
+
+Tested on 2026-11-01 against a pack built locally exactly as the workflow does (same digest, same script, the benchmark busybox), served from a `file:///` URL and moved away from its build path so the re-point step mattered:
+
+| Step | Result |
+|---|---|
+| `add ros` (local "download", checksums, import, re-point) | **2.3 s** (download + verify 1.0 s, import + re-point 1.3 s). Over the network, add the download of 372 MB. |
+| first `enter ros -- 'ros2 pkg list \| wc -l'` | 194 packages; `import rclpy` works; `/.sparkle/image` points at this PC's copy; 3.2 s |
+| `reset ros`, then `enter` | a file written to `/usr/local/bin` before the reset is gone |
+| `add ros` again | refused: `sparkle-ros already exists` |
+| a wrong hash in `SHA256SUMS` | refused at the first file: `checksum mismatch`; no folder, no distro left |
+| no release published (404) | fails in 0.5 s: `No prebuilt pack reachable; to build it on this PC: sparkle add ros --build` |
+
+The workflow itself has not run yet, so the published pack (with Ubuntu's busybox) is untested.
+
+## How `add --image` / `--build` works (local build)
 
 1. **Download**: `crane pull --platform linux/amd64 <ref>` to `SPARKLE_HOME\cache\<ref>.tar`. A second `add` of the same ref reuses the tarball.
 2. **Flatten**: `crane export - -` piped into `tar -x` in a tmpfs at `/mnt/wsl/sparkle-build-<name>` inside the helper distro (`SPARKLE_TOOL_DISTRO`, default `sparkle-s1-ours2`, needs mksquashfs >= 4.6).
