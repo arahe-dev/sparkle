@@ -419,25 +419,33 @@ fn build_and_import(
     Ok((t_flat, t_build, t_imp))
 }
 
-/// Download one file with curl.exe (ships with Windows; honours HTTPS_PROXY), resuming a partial.
-/// `stubborn` also retries non-transient errors (connection resets mid-file); not for a first probe,
-/// where a 404 should fail at once.
-fn fetch(url: &str, dest: &Path, stubborn: bool) -> Res<()> {
+/// Download one file with curl.exe (ships with Windows; honours HTTPS_PROXY). A broken transfer
+/// is retried by starting curl again on the same .part file, so each attempt resumes where the
+/// last one stopped (curl's own --retry restarts the file). An HTTP error (exit 22) fails at once.
+fn fetch(url: &str, dest: &Path) -> Res<()> {
     let part = dest.with_extension("part");
-    let mut c = Command::new("curl.exe");
-    c.args(["-fL", "--retry", "5", "-C", "-", "--progress-bar", "-o"]);
-    if stubborn {
-        c.arg("--retry-all-errors");
+    let mut last = String::new();
+    for attempt in 1..=6 {
+        let st = Command::new("curl.exe")
+            .args(curl_args(url, &part.to_string_lossy()))
+            .status()
+            .map_err(|e| format!("curl.exe: {e}"))?;
+        if st.success() {
+            return fs::rename(&part, dest).map_err(|e| e.to_string());
+        }
+        last = format!("{st}");
+        if st.code() == Some(22) {
+            break;
+        }
+        eprintln!("sparkle: download interrupted ({st}), resuming (attempt {attempt}/6)");
     }
-    let st = c
-        .arg(&part)
-        .arg(url)
-        .status()
-        .map_err(|e| format!("curl.exe: {e}"))?;
-    if !st.success() {
-        return Err(format!("download failed: {url} ({st})"));
-    }
-    fs::rename(&part, dest).map_err(|e| e.to_string())
+    Err(format!("download failed: {url} ({last})"))
+}
+
+fn curl_args(url: &str, out: &str) -> Vec<String> {
+    let mut a: Vec<String> = ["-fL", "--retry", "3", "-C", "-", "--progress-bar"].map(String::from).to_vec();
+    a.extend(["-o".into(), out.into(), url.into()]);
+    a
 }
 
 /// SHA-256 of a file, via certutil (ships with Windows; std has no hashing).
@@ -473,66 +481,96 @@ fn add_prebuilt(home: &Path, name: &str, base: &str, wsl: &mut dyn Wsl) -> Res<(
     if dir.exists() {
         return Err(format!("{} already exists", dir.display()));
     }
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let img = to_wsl(&dir.join(IMAGE))?; // before downloading: the pack must be on a drive path
     let t_all = Instant::now();
-    let r = download_and_import(name, base, &dir, wsl);
-    if r.is_err() {
-        if wsl.list()?.iter().any(|x| x.eq_ignore_ascii_case(&d)) {
-            eprintln!("sparkle: add failed after import; run `sparkle eject {name}` to clean up");
-        } else {
+
+    let t = Instant::now();
+    let (release, stage) = download(home, name, base)?;
+    let t_dl = secs(t);
+
+    // Only now make the pack folder; the image moves in from the staging folder (same drive).
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    for f in [IMAGE, "source.txt", "SHA256SUMS"] {
+        let r = if f == IMAGE { fs::rename(stage.join(f), dir.join(f)) } else { fs::copy(stage.join(f), dir.join(f)).map(|_| ()) };
+        if let Err(e) = r {
+            let _ = fs::rename(dir.join(IMAGE), stage.join(IMAGE));
             let _ = fs::remove_dir_all(&dir);
+            return Err(format!("moving {f} into {}: {e}", dir.display()));
         }
     }
-    let (t_dl, t_imp) = r?;
-    println!("added {d}: download {t_dl:.1} s, import {t_imp:.1} s, total {:.1} s", secs(t_all));
+    let t = Instant::now();
+    println!("[2/3] wsl --import {d}");
+    let (dir_s, seed_s) = (dir.to_string_lossy().to_string(), stage.join("seed.tar").to_string_lossy().to_string());
+    let rc = wsl.run(&["--import", &d, &dir_s, &seed_s, "--version", "2"])?;
+    if rc != 0 {
+        let _ = fs::rename(dir.join(IMAGE), stage.join(IMAGE));
+        let _ = fs::remove_dir_all(&dir);
+        return Err(format!("wsl --import failed (exit {rc})"));
+    }
+    // Registered: write the meta now, so `eject` can clean up whatever happens next.
+    let source = fs::read_to_string(dir.join("source.txt")).unwrap_or_default();
+    write_meta(&dir, &Meta { image_ref: source.lines().next().unwrap_or(&release).trim().to_string(), distro: d.clone() })?;
+    // The seed names the image by the path it was built at; point it at this PC's copy. Nothing
+    // under /usr exists until the image mounts, so this uses the pack's own busybox. The path is
+    // an argument, not part of the script, so quotes and spaces in it are harmless.
+    println!("[3/3] pointing the pack at {}", dir.join(IMAGE).display());
+    let rc = wsl.run(&["-d", &d, "-u", "root", "--cd", "/", "--exec", "/.sparkle/bin/busybox", "sh", "-c",
+        "echo \"$1\" > /.sparkle/image", "sh", &img])?;
+    wsl.run(&["-t", &d])?;
+    if rc != 0 {
+        return Err(format!("could not set the image path in {d} (exit {rc}); run `sparkle eject {name}` and try again"));
+    }
+    let _ = fs::remove_file(stage.join("seed.tar"));
+    println!("added {d} from {release}: download {t_dl:.1} s, import {:.1} s, total {:.1} s", secs(t), secs(t_all));
     println!("enter it with: sparkle enter {name}");
     Ok(())
 }
 
-fn download_and_import(name: &str, base: &str, dir: &Path, wsl: &mut dyn Wsl) -> Res<(f64, f64)> {
-    let d = distro(name);
-    let t = Instant::now();
+/// Fetch and verify a release's files into SPARKLE_HOME\cache\pack-<name>\<release>\. The folder
+/// survives a failed or interrupted run, so the next `add` resumes, and files that already match
+/// SHA256SUMS are not fetched again. Returns (release, folder).
+fn download(home: &Path, name: &str, base: &str) -> Res<(String, PathBuf)> {
+    // base/LATEST names the immutable release that holds the files (pack.yml makes one per build
+    // and only then moves LATEST). Without it (a mirror, file:///), the files are at base itself.
+    let cache = home.join("cache").join(format!("pack-{name}"));
+    fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
+    let latest = cache.join("LATEST");
+    let _ = fs::remove_file(&latest);
+    let _ = fs::remove_file(latest.with_extension("part"));
     println!("[1/3] downloading pack {name} from {base}");
-    fetch(&format!("{base}/SHA256SUMS"), &dir.join("SHA256SUMS"), false)
+    let (release, url) = match fetch(&format!("{base}/LATEST"), &latest) {
+        Ok(()) => {
+            let tag = fs::read_to_string(&latest).unwrap_or_default().trim().to_string();
+            if tag.is_empty() || !tag.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.') {
+                return Err(format!("{base}/LATEST does not name a release: {tag:?}"));
+            }
+            let root = base.rsplit_once('/').map(|(r, _)| r).unwrap_or(base);
+            (tag.clone(), format!("{root}/{tag}"))
+        }
+        Err(_) => ("direct".to_string(), base.to_string()),
+    };
+    let stage = cache.join(&release);
+    fs::create_dir_all(&stage).map_err(|e| e.to_string())?;
+    let sums_path = stage.join("SHA256SUMS");
+    let _ = fs::remove_file(sums_path.with_extension("part"));
+    fetch(&format!("{url}/SHA256SUMS"), &sums_path)
         .map_err(|e| format!("{e}\nNo prebuilt pack reachable; to build it on this PC: sparkle add {name} --build"))?;
-    let sums = parse_sums(&fs::read_to_string(dir.join("SHA256SUMS")).map_err(|e| e.to_string())?);
+    let sums = parse_sums(&fs::read_to_string(&sums_path).map_err(|e| e.to_string())?);
     for f in ["source.txt", "seed.tar", IMAGE] {
         let want = sums.iter().find(|(_, n)| n == f).map(|(h, _)| h.clone())
             .ok_or_else(|| format!("SHA256SUMS has no entry for {f}"))?;
-        let p = dir.join(f);
-        fetch(&format!("{base}/{f}"), &p, true)?;
+        let p = stage.join(f);
+        if p.is_file() && sha256(&p)? == want {
+            continue; // from an earlier run of this release
+        }
+        fetch(&format!("{url}/{f}"), &p)?;
         let got = sha256(&p)?;
         if got != want {
-            return Err(format!("{f}: checksum mismatch (expected {want}, got {got})"));
+            let _ = fs::remove_file(&p);
+            return Err(format!("{f}: checksum mismatch (expected {want}, got {got}); run add again to re-download it"));
         }
     }
-    let t_dl = secs(t);
-
-    let t = Instant::now();
-    println!("[2/3] wsl --import {d}");
-    let seed = dir.join("seed.tar");
-    let (dir_s, seed_s) = (dir.to_string_lossy().to_string(), seed.to_string_lossy().to_string());
-    let rc = wsl.run(&["--import", &d, &dir_s, &seed_s, "--version", "2"])?;
-    if rc != 0 {
-        return Err(format!("wsl --import failed (exit {rc})"));
-    }
-    // The seed names the image by the path it was built at; point it at this PC's copy.
-    // Nothing under /usr exists until the image mounts, so this uses the pack's own busybox.
-    println!("[3/3] pointing the pack at {}", dir.join(IMAGE).display());
-    let img = to_wsl(&dir.join(IMAGE))?;
-    if img.contains('\'') {
-        return Err(format!("pack path {img} contains a quote"));
-    }
-    let set = format!("echo '{img}' > /.sparkle/image");
-    let rc = wsl.run(&["-d", &d, "-u", "root", "--cd", "/", "--exec", "/.sparkle/bin/busybox", "sh", "-c", &set])?;
-    wsl.run(&["-t", &d])?;
-    if rc != 0 {
-        return Err(format!("could not set the image path in {d} (exit {rc})"));
-    }
-    let source = fs::read_to_string(dir.join("source.txt")).unwrap_or_default();
-    write_meta(dir, &Meta { image_ref: source.trim().to_string(), distro: d })?;
-    let _ = fs::remove_file(&seed);
-    Ok((t_dl, secs(t)))
+    Ok((release, stage))
 }
 
 /// Why a pack can't start, or None if it can.
@@ -812,6 +850,15 @@ mod tests {
         let mut w = Mock { distros: vec!["sparkle-ros".into()], ..Default::default() };
         assert!(add(&h, "ros", "ros:jazzy-ros-base", &mut w).unwrap_err().contains("already exists"));
         fs::remove_dir_all(h).unwrap();
+    }
+
+    #[test]
+    fn curl_output_follows_dash_o() {
+        let a = curl_args("https://x/f", "C:/p/f.part");
+        let i = a.iter().position(|x| x == "-o").unwrap();
+        assert_eq!(a[i + 1], "C:/p/f.part");
+        assert_eq!(a.last().unwrap(), "https://x/f");
+        assert!(a.contains(&"-C".to_string()) && !a.contains(&"--retry-all-errors".to_string()));
     }
 
     #[test]

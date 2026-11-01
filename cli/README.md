@@ -16,12 +16,13 @@ sparkle eject <name>                 wsl --unregister the distro, then delete it
 
 CI builds the pack once and publishes it; the user's PC only downloads and imports it. No crane, no helper distro, no `mksquashfs`.
 
-1. **Built by** [.github/workflows/pack.yml](../.github/workflows/pack.yml) (run by hand: `gh workflow run pack.yml -f name=ros -f image=ros:jazzy-ros-base`) on `ubuntu-24.04`. It pins the image digest, flattens it, runs the same `proto/build-fixtures.sh` as the benchmarks and the local build (with Ubuntu's `busybox-static`), and uploads `image.sqfs`, `seed.tar`, `source.txt` (image ref + digest) and `SHA256SUMS` to the release `pack-<name>`.
-2. **`add`** downloads the four files with `curl.exe` (resumes, retries; honours `HTTPS_PROXY`), checks each against `SHA256SUMS` with `certutil`, then runs `wsl --import`.
-3. **Re-point:** the seed names the image by the path it was built at, so `add` writes this PC's path into `/.sparkle/image` with the pack's own busybox, then `wsl -t`. The next start mounts the image.
-4. The pack folder keeps `image.sqfs`, `ext4.vhdx`, `SHA256SUMS`, `source.txt` and `sparkle.meta` (its `image_ref` is the pinned digest).
+1. **Built by** [.github/workflows/pack.yml](../.github/workflows/pack.yml) (run by hand: `gh workflow run pack.yml -f name=ros -f image=ros:jazzy-ros-base`) on `ubuntu-24.04`. It pins the image digest, flattens it, runs the same `proto/build-fixtures.sh` as the benchmarks and the local build (with Ubuntu's `busybox-static`, after checking it has every applet the boot path uses), and publishes `image.sqfs`, `seed.tar`, `source.txt` (image ref + digest, commit, busybox and mksquashfs versions) and `SHA256SUMS` as a new release `pack-<name>-<digest>-r<run>`. That release is never changed afterwards. Only then does the pointer release `pack-<name>` get a new one-line `LATEST` naming it, so a user mid-download never sees a half-replaced set.
+2. **`add`** reads `LATEST`, downloads the four files with `curl.exe` into `SPARKLE_HOME\cache\pack-<name>\<release>\`, and checks each against `SHA256SUMS` with `certutil`. A broken transfer is resumed by starting curl again on the same partial file; an interrupted or failed `add` keeps the folder, so the next `add` resumes and skips files that already match.
+3. **Import:** the image moves into the pack folder, `wsl --import` runs on the seed, and `sparkle.meta` is written straight away (so `eject` can always clean up).
+4. **Re-point:** the seed names the image by the path it was built at, so `add` writes this PC's path into `/.sparkle/image` with the pack's own busybox (the path is passed as an argument, so quotes and spaces are fine), then `wsl -t`. The next start mounts the image.
+5. The pack folder keeps `image.sqfs`, `ext4.vhdx`, `SHA256SUMS`, `source.txt` and `sparkle.meta` (its `image_ref` is the pinned digest).
 
-`SPARKLE_PACK_URL` overrides the download base (a mirror, or `file:///C:/...`). `SHA256SUMS` comes from the same release, so it catches corrupt downloads, not a tampered release.
+`SPARKLE_PACK_URL` overrides the pointer base (a mirror, or `file:///C:/...`); if it has no `LATEST`, the files are taken from the base itself. `SHA256SUMS` comes from the same release, so it catches corrupt downloads, not a tampered release.
 
 Tested on 2026-11-01 against a pack built locally exactly as the workflow does (same digest, same script, the benchmark busybox), served from a `file:///` URL and moved away from its build path so the re-point step mattered:
 
@@ -34,7 +35,16 @@ Tested on 2026-11-01 against a pack built locally exactly as the workflow does (
 | a wrong hash in `SHA256SUMS` | refused at the first file: `checksum mismatch`; no folder, no distro left |
 | no release published (404) | fails in 0.5 s: `No prebuilt pack reachable; to build it on this PC: sparkle add ros --build` |
 
-The workflow itself has not run yet, so the published pack (with Ubuntu's busybox) is untested.
+**Against the published release** (workflow run 41282291227, 1 min 14 s on GitHub; 2026-11-01, through an HTTP proxy, fresh `SPARKLE_HOME`):
+
+| Step | Result |
+|---|---|
+| `add ros` | **44.6 s** total: download + verify 41.9 s (372 MB), import + re-point 2.7 s |
+| first `enter ros` | 3.9 s; 194 ROS packages, `import rclpy` works, user `dev`, `/mnt/c`, `nvidia-smi` sees the GPU (so Ubuntu's `busybox-static` boots the pack) |
+| `reset ros`, then `enter` | marker under `/usr/local/bin` gone, still 194 packages; 3.2 s |
+| `ls` / `eject ros` | 483 MB on disk; distro and folder removed |
+
+Against the pitch ("working ROS 2 in about 15 s"): met once the download is done (2.7 s); the first `add` is bound by the network. The CI image is not byte-identical to a local build of the same digest (`mksquashfs` output varies between builds), so `SHA256SUMS` is per release, and `source.txt` is what pins the content.
 
 ## How `add --image` / `--build` works (local build)
 

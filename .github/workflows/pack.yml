@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: pack name (release tag is pack-<name>)
+        description: pack name (pointer release is pack-<name>)
         default: ros
       image:
         description: OCI image ref (linux/amd64)
@@ -27,6 +27,11 @@ jobs:
           sudo apt-get update -q && sudo apt-get install -yq squashfs-tools busybox-static
           mksquashfs -version | head -1
           file -L "$(command -v busybox)" | grep -q 'statically linked'
+          # Every applet the pack runs before /usr exists (proto/stub/init.sh, mount, prewarm.sh).
+          busybox --list > applets.txt
+          for a in sh grep cat usleep dd od tr rm mkdir cp mount awk ln nice find xargs tail; do
+            grep -qx "$a" applets.txt || { echo "busybox lacks $a"; exit 1; }
+          done
           curl -fsSL https://github.com/google/go-containerregistry/releases/download/v0.20.2/go-containerregistry_Linux_x86_64.tar.gz | tar -xz crane
       - name: pull and flatten
         run: |
@@ -39,12 +44,29 @@ jobs:
           sudo sh proto/build-fixtures.sh setup /mnt/tree "$PWD/out"
           sudo sh proto/build-fixtures.sh sparkle /mnt/tree "$PWD/out" "$(command -v busybox)"
           sudo chown -R "$USER" out
-          printf '%s@%s\n' "${IMAGE%%@*}" "$(cat digest.txt)" > out/source.txt
-          cd out && sha256sum image.sqfs seed.tar source.txt > SHA256SUMS && cat SHA256SUMS && ls -l
+          {
+            printf '%s@%s\n' "${IMAGE%%@*}" "$(cat digest.txt)"
+            echo "commit=$GITHUB_SHA run=$GITHUB_RUN_ID"
+            echo "busybox=$(busybox | head -1) sha256=$(sha256sum < "$(command -v busybox)" | cut -c1-64)"
+            echo "mksquashfs=$(mksquashfs -version | head -1)"
+          } > out/source.txt
+          cd out && sha256sum image.sqfs seed.tar source.txt > SHA256SUMS && cat SHA256SUMS source.txt && ls -l
       - name: release
+        # Each build gets its own release, never changed afterwards. Only once all its files are up
+        # does the pointer release pack-<name> get a new LATEST (one small file), so a user in the
+        # middle of a download never sees a half-replaced set.
         run: |
-          tag="pack-$NAME"
-          notes="Prebuilt Sparkle pack \`$NAME\` from \`$(cat out/source.txt)\`, built by $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID from commit $GITHUB_SHA. \`sparkle add $NAME\` downloads it and checks SHA256SUMS."
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "pack: $NAME" --notes "$notes" --prerelease
-          gh release edit "$tag" --notes "$notes"
-          gh release upload "$tag" out/image.sqfs out/seed.tar out/source.txt out/SHA256SUMS --clobber
+          tag="pack-$NAME-$(cut -c8-19 digest.txt)-r$GITHUB_RUN_NUMBER"
+          src=$(head -1 out/source.txt)
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh release create "$tag" out/image.sqfs out/seed.tar out/source.txt out/SHA256SUMS \
+            --target "$GITHUB_SHA" --prerelease --title "pack: $NAME ($tag)" \
+            --notes "Prebuilt Sparkle pack '$NAME' from $src, built by $run_url from commit $GITHUB_SHA. Build details in source.txt."
+          ptr="pack-$NAME"
+          gh release view "$ptr" >/dev/null 2>&1 || gh release create "$ptr" --target "$GITHUB_SHA" --prerelease \
+            --title "pack: $NAME (latest)" --notes "Pointer for 'sparkle add $NAME'."
+          echo "$tag" > LATEST
+          gh release upload "$ptr" LATEST --clobber
+          gh release edit "$ptr" --notes "Pointer for 'sparkle add $NAME': LATEST names the release with the current build ($tag, $run_url)."
+          # Files from before the pointer scheme, if any.
+          for f in image.sqfs seed.tar source.txt SHA256SUMS; do gh release delete-asset "$ptr" "$f" -y 2>/dev/null || true; done
