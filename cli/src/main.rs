@@ -16,6 +16,7 @@ const PROTO: &[(&str, &str)] = &[
     ("build-fixtures.sh", include_str!("../../proto/build-fixtures.sh")),
     ("common-setup.sh", include_str!("../../proto/common-setup.sh")),
     ("stub/init.sh", include_str!("../../proto/stub/init.sh")),
+    ("stub/prewarm.sh", include_str!("../../proto/stub/prewarm.sh")),
     ("stub/mount", include_str!("../../proto/stub/mount")),
     ("stub/ldconfig", include_str!("../../proto/stub/ldconfig")),
     ("volatile/fstab", include_str!("../../proto/volatile/fstab")),
@@ -678,6 +679,16 @@ mod tests {
         let mut w = Mock { distros: vec!["sparkle-ros".into()], ..Default::default() };
         assert!(add(&h, "ros", "ros:jazzy-ros-base", &mut w).unwrap_err().contains("already exists"));
         fs::remove_dir_all(h).unwrap();
+    }
+
+    #[test]
+    fn embeds_every_file_build_fixtures_reads() {
+        let (_, script) = PROTO[0];
+        for word in script.split(|c: char| c.is_whitespace() || c == '"') {
+            if let Some(rel) = word.strip_prefix("$P/") {
+                assert!(PROTO.iter().any(|(n, _)| *n == rel), "build-fixtures.sh reads {rel}, not embedded");
+            }
+        }
     }
 
     #[test]
