@@ -50,14 +50,14 @@ Settings (env): `SPARKLE_HOME` (default `%USERPROFILE%\sparkle`), `SPARKLE_CRANE
 |---|---|
 | `add e2e --image ros:jazzy-ros-base`, first (with download) | download **8.4 s** (direct, no proxy), flatten 6.0 s, build 13.0 s, import 0.8 s, total **28.3 s** |
 | `add`, image cached (n = 3) | flatten 5.9 s, build 14.7–15.0 s, import 0.7 s, total **21.4–21.7 s** |
-| pack on disk after `add` | image.sqfs 336 MB + ext4.vhdx 113 MB = 449 MB |
+| pack on disk after `add` | 449 MB (image + disk; the split was not recorded in this run) |
 | `enter e2e -- 'ros2 pkg list \| wc -l'` from a stopped distro (n = 3) | **194** packages every time; 2.35–2.84 s |
 | `enter e2e -- true`, already running (n = 3) | 0.82–0.92 s |
 | `reset e2e` (n = 3) | 0.34–0.36 s for the command (flag + `wsl -t`); the next `enter` took 2.34–2.61 s and found a file written to `/usr/local/bin` before the reset gone, 3/3 |
 | `enter` with `image.sqfs` renamed away | refused before launching WSL, exit 1: `sparkle: the image for pack e2e is missing: <home>/sparkle-cli-e2e/packs/e2e/image.sqfs` |
 | `eject e2e` | distro unregistered, folder deleted |
 
-**Against the pitch** ("working ROS 2 in about 15 s"): not met yet. With the image cached, `add` takes 21–22 s; most of it is building the squashfs image on the user's PC (~15 s), then flattening the layers (~6 s). Shipping prebuilt images, built in CI and downloaded, would remove both. The download itself was fast this time (8.4 s for 297 MB). On 2026-10-31 the same download took 250 s, and once failed with `unexpected EOF` through the HTTP proxy, so the network, not the tool, dominates a first `add`.
+**Against the pitch** ("working ROS 2 in about 15 s"): not met yet. With the image cached, `add` takes 21–22 s; most of it is building the squashfs image on the user's PC (~15 s), then flattening the layers (~6 s). Shipping prebuilt images, built in CI and downloaded, would remove both. The download itself was fast this time (8.4 s). On 2026-10-31 the same download took 250 s, and once failed with `unexpected EOF` through the HTTP proxy, so the network, not the tool, dominates a first `add`.
 
 The first CLI run (2026-10-31, under load from three other sessions) gave 22.8 s for a cached `add`, 3.4 s for a cold `enter` and 2.4 s for `reset`. It is in git history at commit 83743a4.
 

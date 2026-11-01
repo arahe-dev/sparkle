@@ -1,7 +1,7 @@
 # Results: Sparkle layout vs plain WSL
 
 Benchmark spikes S10–S20, run 2026-10-30/31; S18, S19, the second image and the CLI re-run on a quiet machine on 2026-11-01.
-- Every number below comes from [bench/results/summary.md](../bench/results/summary.md).
+- Every number below comes from [bench/results/summary.md](../bench/results/summary.md), except the second image and S20, which come from [bench/results-python/summary.md](../bench/results-python/summary.md).
 - That summary is generated from the raw measurements in [bench/results/raw/](../bench/results/raw).
 - How the runs were made fair, and what they don't show, is in [methodology.md](methodology.md). Read that page before quoting any of this.
 
@@ -53,7 +53,7 @@ Benchmark spikes S10–S20, run 2026-10-30/31; S18, S19, the second image and th
   - CPU-bound work (compiling, building) is the same.
 - **Failures recover like plain WSL.** A VM killed mid-install was repaired by the usual `dpkg --configure -a` + `apt-get install -f` (n=1 per variant). The one Sparkle-only failure tested, a missing image file, shows a confusing error (S16).
 - **Disk growth is solved for installed packages, at a price (S18).** With the upper layer in its own file, reset returned the pack to exactly the same size twice (490 MB, from 1.73 and 1.85 GB). The price: installs about 50% slower, and the upper file over-allocates while in use. The seed disk (`/home`, logs) still keeps its high-water mark.
-- **Most of the speed cost has a fix (S19).** Switching the image from squashfs to erofs removes the warm cost and 38–75% of the cold gap, for +124 MB of image. It needs the erofs kernel module loaded at boot, which the pack can't do yet.
+- **Most of the speed cost has a fix (S19).** Switching the image from squashfs to erofs removes the warm cost and 38–75% of the cold gap for Python/ROS/C++ commands, for +124 MB of image. A cold metadata walk loses squashfs's edge (459 → 714 ms, level with plain). It needs the erofs kernel module loaded at boot, which the pack can't do yet.
 - **The approach is not ROS-specific.** A Debian `python:3.12` image shows the same disk saving (−56%) and the same "slower cold, same warm" shape.
 
 ## S10 — Same bytes in every variant
@@ -261,7 +261,7 @@ Does the layout hold for an image that isn't Ubuntu or ROS? First run 2026-10-31
 - Numbers come from [bench/results-python/summary.md](../bench/results-python/summary.md), generated from [bench/results-python/raw/](../bench/results-python/raw).
 - Image: `python:3.12-bookworm@sha256:034c3e9d…317a0` (linux/amd64), a 964 MB tree with Python 3.12.16 in `/usr/local` and gcc.
 - No `wsl --shutdown`, so there are no VM-cold rows. n = 5 per cell.
-- The first run shared the VM with three other benchmark sessions. Its data is in git history (commits f998d24 and 330ad8b, `bench/results-python/raw/`). The quiet re-run agrees with it on every headline; the differences are noted below.
+- The first run shared the VM with three other benchmark sessions. Its data is in git history (commits f998d24 and 330ad8b, `bench/results-python/raw/`). The quiet re-run agrees with it on the direction of every headline, but some ratios moved: vs tuned, cold `pip --version` 4.5× → 2.3× and stdlib import 1.7× → 2.6×; cold `gcc` 3.3× → 3.8×; warm metadata walk 2.3× → 3.5×; start-time cost +223 → +144 ms. `apt_install_jq` now passes.
 - **Not run (time box):** S11 VM-cold, S13 build, S14 apt timing, S15 growth/compaction/reset, S16 failure modes, offline `.deb` install, restore onto a second PC.
 - Limits are in [methodology.md](methodology.md#second-image-python312-bookworm-and-s20-exportrestore).
 
@@ -279,7 +279,7 @@ No change to `proto/` was needed. The stub, `init.sh` and the build script worke
 | Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 86 → 325 ms, **3.8×**; vs tuned: stdlib import 2.6×, `pip --version` 2.3× | yes, worse |
 | Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 27 vs 32 ms (tuned 33), same; stdlib import 80 vs tuned 85 ms, same; pip same | yes, even better |
 | Walk metadata, warm | 4.5× (39 → 177 ms) | 3.5× (25 → 87 ms) | yes |
-| Compatibility (S17) | 18/18 | **19/20 on every variant**. The one failure is the same on all three (see below) | yes |
+| Compatibility (S17) | 18/18 | **18/19 on every variant** (plus the informational `/tmp` row). The one failure is the same on all three (see below) | yes |
 
 **So the result is not ROS-specific.** The disk saving, a start-time cost, and the "slower cold, same warm" shape all repeat on a Debian image with a different layout (`/usr/local`, empty `/opt`).
 
@@ -295,7 +295,7 @@ S12 (tool speed, ms, median of 5):
 
 **Why plain is slow on Python here:** on this image, `plain` is about 4× slower than tuned *and* sparkle on warm Python steps (stdlib import 359 vs 80–85 ms, `pip` 584 vs 162–164 ms). The official `python` image deletes its compiled `.pyc` files (0 under `/usr/local/lib/python3.12`, checked after the run), and user `dev` can't write there. So on plain, Python recompiles every module it imports, on every run. Tuned and sparkle set `PYTHONPYCACHEPREFIX` to `/tmp` (part of the tmpfs settings), so their compiled cache survives between runs. This is a real-world benefit of the tmpfs settings on images built like this, not of the image layout. The fair comparison for Python steps is therefore sparkle vs **tuned**: 2.3–2.6× slower cold, the same warm. Cold sparkle times have wider ranges than plain's (for example `gcc` 218–475 ms).
 
-S17: all three variants pass the same 19 checks:
+S17: all three variants pass the same 18 checks (plus an informational row recording `/tmp`'s type):
 - default user, `cmd.exe` interop, `/mnt/c`, `wslpath`, `wslinfo`, DNS
 - `nvidia-smi -L`, `/dev/dxg`, WSLg X11 and Wayland sockets
 - Python 3.12.16, pip 25.0.1, stdlib (sqlite 3.40.1, OpenSSL), `venv`, gcc hello-world
@@ -305,7 +305,7 @@ One check fails, identically on all three variants: `gpu_opengl_d3d12`, because 
 
 ### Export and restore (S20)
 
-S16 timed `wsl --export` but never restored a backup. S20 exports each variant, imports it as a new distro and boots it. It ran on the Python image; the steps don't depend on the image.
+S16 timed `wsl --export` but never restored a backup. S20 exports the plain and sparkle variants, imports each as a new distro and boots it. It ran on the Python image; the steps don't depend on the image.
 
 | | plain | sparkle |
 |---|---|---|
@@ -386,7 +386,7 @@ Setup: one bench distro holds every variant side by side (`bench/guest/s19-setup
 | `ros2 pkg list`, warm | 226 ms | 295 ms | 282 ms | 269 ms | **240 ms** | 232 ms | 285 ms |
 | `g++` on rclcpp headers, warm | 1.89 s | 2.08 s | 2.02 s | 1.88 s | 1.99 s | 1.94 s | 1.94 s |
 
-`sq128` = today's squashfs (lz4hc, 128 KiB blocks); `sq1m` = 1 MiB blocks; `sqraw` = squashfs with no compression; `erolz4` = erofs `-zlz4hc`; `eroraw` = erofs uncompressed. Image builds: squashfs 9–14 s, erofs 157 s (lz4hc) and 195 s (uncompressed), single-threaded `mkfs.erofs`.
+`sq128` = today's squashfs (lz4hc, 128 KiB blocks); `sq1m` = 1 MiB blocks; `sqraw` = squashfs with no compression; `erolz4` = erofs `-zlz4hc`; `eroraw` = erofs uncompressed. Image builds: squashfs 9–13 s (`sqraw`, `sq1m`; `sq128` is the S10 image, not rebuilt), erofs 157 s (lz4hc) and 195 s (uncompressed), single-threaded `mkfs.erofs`.
 
 **How to read this:**
 - **The cold cost is squashfs, not compression.** Uncompressed squashfs is no faster than lz4hc, and 1 MiB blocks are slower. erofs on the same file, under the same overlay, cuts the cold gap to plain by 38–75%: `import rclpy` +241 ms instead of +387 ms, `ros2 pkg list` +301 ms instead of +701 ms, the header compile +0.55 s instead of +2.25 s. The kernel is built with `SQUASHFS_DECOMP_SINGLE` (one decompressor at a time), which may be part of it; that wasn't isolated.
@@ -402,22 +402,23 @@ It reads `/opt/ros`, `/usr/include` and the Python stdlib and `dist-packages` at
 | | sq128 | eroraw |
 |---|---|---|
 | Time to warm | 1.8–2.0 s | 5.7–6.1 s |
-| Page cache it adds | 524 MB | 330 MB |
+| Page cache it adds | 524 MiB | 330 MiB |
+| `find` over `/usr` + `/opt`: cold / after / during | 459 / 353 / **2,472** ms | 982 / 352 / **1,505** ms |
 | `import rclpy`: cold / after / during | 869 / 566 / **2,297** ms | 808 / 362 / **988** ms |
 | `ros2 pkg list`: cold / after / during | 1,350 / 680 / **2,304** ms | 1,043 / 543 / **1,361** ms |
 | `g++` on headers: cold / after / during | 4.46 / 3.73 / **5.66** s | 2.66 / 2.37 / **2.74** s |
 
 - **Once it's finished, prewarm brings Python and ROS to about plain cold** (plain: 482 and 649 ms). It barely helps `g++`, which also reads the compiler and libraries outside the prewarmed set.
-- **While it's running, it makes things worse.** On today's squashfs the first command is 1.3–2.6× slower than with no prewarm at all; on erofs 1.0–1.3×. The first command is the one a user notices, so prewarm hurts the case it was meant to fix.
-- **It costs 330–524 MB of page cache.** On squashfs it's more, likely because the loop device caches the image file as well as the decompressed files. The kernel can reclaim it, but it's RAM taken at boot.
-- The first S19 run (2026-10-31, under load from three other sessions) reached the same conclusions with wider ranges: erofs cut the cold gap by 30–67%, and prewarm-while-running was 2–2.6× slower on squashfs. It is in git history at commit a0cee85.
+- **While it's running, it makes things worse.** On today's squashfs the first command is 1.3–5.4× slower than with no prewarm at all (2.6× for `import rclpy`, 5.4× for `find`); on erofs 1.0–1.5×. The first command is the one a user notices, so prewarm hurts the case it was meant to fix.
+- **It costs 330–524 MiB of page cache.** On squashfs it's more, likely because the loop device caches the image file as well as the decompressed files. The kernel can reclaim it, but it's RAM taken at boot.
+- The first S19 run (2026-10-31, under load from three other sessions) reached the same conclusions with wider ranges: erofs cut the cold gap by 30–67%, and prewarm-while-running was 1.4–2.6× slower on squashfs (6.9× for `find`). It is in git history at commit a0cee85.
 
 ### Recommendation
 
-- **Switch the image to erofs with lz4hc.** It removes all of the warm cost and most of the cold cost. Disk: 460 MB vs 336 MB, +124 MB (+37%) per image, which still leaves the image about half the size of the tree. Image builds are about 11× slower (157 s vs 14 s); `mkfs.erofs` has multithreaded options that weren't tried. Built in CI and downloaded, as the CLI plan proposes, the build time stops mattering to users.
+- **Switch the image to erofs with lz4hc.** It removes all of the warm cost and most of the cold cost. Disk: 460 MB vs 336 MB, +124 MB (+37%) per image, which still leaves the image about half the size of the tree. Image builds are about 12–17× slower (157 s vs 9–13 s for squashfs); `mkfs.erofs` has multithreaded options that weren't tried. Built in CI and downloaded, as the CLI plan proposes, the build time stops mattering to users.
   - **A blocker first:** WSL's kernel builds erofs as a module (`CONFIG_EROFS_FS=m`), not built in. In this test it was loaded by hand, with busybox `insmod` from the helper distro (`bench/s19-fixtures.sh`); one kernel serves every distro, so it was then available in the bench distro too. Inside a pack booted from today's seed, `/usr/lib/modules/<kernel>` was missing, so the pack can't load it itself yet. The boot path must load `erofs.ko` from WSL's modules mount before the image mounts, or fall back to squashfs.
   - The erofs images were loop-mounted (util-linux sets up a loop for a regular file). erofs's file-backed mode (`CONFIG_EROFS_FS_BACKED_BY_FILE=y`) skips the loop device and wasn't tried; it may cut the double caching.
-- **Don't turn prewarm on by default.** It slows the first command while it runs (up to 2.6× on today's squashfs), and it costs 330–524 MB of RAM. It ships as opt-in: `init.sh` starts it only if `/.sparkle/prewarm.on` exists.
+- **Don't turn prewarm on by default.** It slows the first command while it runs (up to 5.4× on today's squashfs, 2.6× for `import rclpy`), and it costs 330–524 MiB of RAM. It ships as opt-in: `init.sh` starts it only if `/.sparkle/prewarm.on` exists.
 
 ## What changes in the design
 

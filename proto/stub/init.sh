@@ -14,12 +14,19 @@ while [ ! -f "$IMG" ] && [ $i -lt 100 ]; do $B usleep 50000; i=$((i+1)); done
 # Reset: drop everything written over the image and restore the package database.
 # With an upper file (/.sparkle/upper-img), reset is deleting that file: Windows gets the space back.
 UF=$($B cat /.sparkle/upper-img 2>/dev/null || true)
+# The guest can't give an upper file's space back: a file grown from inside WSL is allocated in
+# full, so only the host can recreate it sparse (S18). Here reset only re-formats it in place, by
+# clearing the ext4 magic; the host deletes and recreates the file to reclaim the space.
 if [ -f /.sparkle/reset ]; then
-  if [ -n "$UF" ]; then $B rm -f "$UF"; else
+  if [ -n "$UF" ] && [ -f "$UF" ]; then
+  $B dd if=/dev/zero of="$UF" bs=1 seek=1080 count=2 conv=notrunc 2>/dev/null
+  echo "reset: upper file will be re-formatted (space stays allocated until the host recreates it)"
+  else
   $B rm -rf /.sparkle/upper/usr /.sparkle/upper/opt /.sparkle/work/usr /.sparkle/work/opt /var/lib/dpkg
   $B mkdir -p /.sparkle/upper/usr /.sparkle/upper/opt /.sparkle/work/usr /.sparkle/work/opt
-  $B cp -a /.sparkle/dpkg.seed /var/lib/dpkg; fi
-  $B rm -f /.sparkle/reset; echo "reset: upper wiped, dpkg db restored"
+  $B cp -a /.sparkle/dpkg.seed /var/lib/dpkg
+  echo "reset: upper wiped, dpkg db restored"; fi
+  $B rm -f /.sparkle/reset
 fi
 $B mount -t squashfs -o loop,ro "$IMG" /.sparkle/lower || { echo "squashfs mount FAILED"; exit 1; }
 # WSL mounts its own things under /usr before we run: GPU drivers (/usr/lib/wsl/{drivers,lib}),

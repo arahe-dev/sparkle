@@ -684,11 +684,16 @@ mod tests {
     #[test]
     fn embeds_every_file_build_fixtures_reads() {
         let (_, script) = PROTO[0];
+        // Only the plain `$P/path` form is recognised; fail on any other spelling of it.
+        assert!(!script.contains("${P}") && !script.contains("\"$P\"/"), "use the $P/path form");
+        let mut n = 0;
         for word in script.split(|c: char| c.is_whitespace() || c == '"') {
             if let Some(rel) = word.strip_prefix("$P/") {
+                n += 1;
                 assert!(PROTO.iter().any(|(n, _)| *n == rel), "build-fixtures.sh reads {rel}, not embedded");
             }
         }
+        assert!(n >= 7, "found only {n} $P/ reads; the parser no longer matches the script");
     }
 
     #[test]

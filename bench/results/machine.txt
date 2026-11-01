@@ -1,4 +1,5 @@
 date: 2026-10-30T17:03:15Z
+runs: S10-S17 2026-10-30/31; S18, S19, CLI 2026-11-01 (quiet re-run), same machine
 WSL version: 3.0.3.0
 Kernel version: 6.18.54.1-1
 WSLg version: 1.0.79

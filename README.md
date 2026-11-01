@@ -66,9 +66,9 @@ Two fixes measured since, on the same ROS image, not yet in the CLI:
   - about 20% on warm Python/ROS startup
 - **What the two fixes change:**
   - S18 makes reset give the disk space back exactly, and clear `/etc` and `/var/lib`, at about +50% install time.
-  - S19 removes the warm cost and 38–75% of the cold cost, for +124 MB of image.
+  - S19 removes the warm cost and 38–75% of the cold cost of Python/ROS/C++ commands, for +124 MB of image. A cold metadata walk loses squashfs's edge (459 → 714 ms, level with plain).
 - **Not solved yet:**
-  - S18's upper file over-allocates while in use (1.25 GB for 0.7 GB of packages).
+  - S18's upper file over-allocates while in use: 1.25 GB, vs 0.7 GB of disk growth for the same 0.5 GB of packages on today's layout.
   - erofs is a kernel module in WSL, and a pack can't load it at boot yet.
   - If the image file goes missing, WSL itself only says `execvpe(/bin/bash) failed`. `sparkle enter` checks first and names the missing file.
 
@@ -83,9 +83,9 @@ Full numbers and caveats: [docs/results.md](docs/results.md). S18, S19, the seco
   - medians with min–max and n
   - no network in any timed step
   - every startup timing also checks that the boot worked
-- **Raw data is in the repo.** Every number traces to `bench/results/raw/*.jsonl` (final run of each spike), which `bench/summarize.py` turns into [the summary](bench/results/summary.md).
+- **Raw data is in the repo.** Every number traces to `bench/results/raw/*.jsonl` (ROS image) or `bench/results-python/raw/*.jsonl` (second image), final run of each spike, which `bench/summarize.py` turns into [the summary](bench/results/summary.md) and [the second-image summary](bench/results-python/summary.md).
 - **Independent review.** Two reviewers audited the write-up against the raw data. Their corrections are applied, and the bugs they found in the harness are fixed and re-measured.
-- **Limits are written down:** one machine, one image, guest-cold not host-cold, synthetic workload, run history, and what's untested. See [docs/methodology.md](docs/methodology.md).
+- **Limits are written down:** one machine, two images (most spikes on the ROS image only), guest-cold not host-cold, synthetic workload, run history, and what's untested. See [docs/methodology.md](docs/methodology.md).
 
 ## Reproduce
 
