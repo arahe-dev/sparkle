@@ -2,7 +2,7 @@
 
 **Disposable, smaller WSL environments for ROS and other Linux work, one command each.**
 
-> **Status: design + working boot prototype + reproducible benchmarks + a first `sparkle` CLI ([cli/](cli)): `add`, `enter`, `ls`, `reset`, `eject` work end to end on one PC. `add ros` takes ~23 s once the image is downloaded (not yet the 15 s goal), plus the download.**
+> **Status: early. A first `sparkle` CLI ([cli/](cli)) works end to end on one PC: `add`, `enter`, `ls`, `reset`, `eject`. `add ros` takes ~22 s once the image is downloaded (the goal is 15 s), plus the download. It needs a helper distro with `mksquashfs`, and there is no release binary yet.**
 > This repo publishes the measurements behind the design, including the ones that don't favour it, so you can check them before anything ships.
 
 ## The problem
@@ -44,6 +44,17 @@ Same ROS 2 Jazzy `/usr` and `/opt` (byte-identical, verified by hash), as a plai
 | nvidia-smi, OpenGL D3D12, WSLg, interop, ROS pub/sub… | 18/18 checks | 18/18 checks |
 | VM killed mid-`apt install`; 4 terminals opened at once | recovers; 20/20 | recovers; 20/20 |
 | `wsl --export` backup (file data) | 19.7 s, 939 MB | 1.5 s, 32 MB **+ the 336 MB image** |
+| Second image (`python:3.12`, Debian): disk fresh | 1,187 MB | **526 MB (−56%)** |
+
+Two fixes measured since, on the same ROS image, not yet in the CLI:
+
+| | today's Sparkle | with the fix |
+|---|---|---|
+| **S18** upper layer in its own file: disk after install → reset, twice | 1,154 → 1,154 MB, 1,322 → 1,322 MB | **1,729 → 490 MB, 1,854 → 490 MB** |
+| … cost: `apt install` of 134 packages | 34 s | 48–55 s |
+| **S19** erofs instead of squashfs: `import rclpy` / `ros2 pkg list`, cold (plain: 482 / 649 ms) | 869 / 1,350 ms | **723 / 950 ms** |
+| … warm (plain: 161 / 226 ms) | 248 / 295 ms | **168 / 240 ms**, level with plain |
+| … cost: image size | 336 MB | 460 MB |
 
 ![Disk space a ROS 2 pack takes on Windows](bench/results/footprint.svg)
 
@@ -53,12 +64,15 @@ Same ROS 2 Jazzy `/usr` and `/opt` (byte-identical, verified by hash), as a plai
   - 0.1–0.2 s per cold start or new shell
   - about 2× on first reads after the cache is dropped
   - about 20% on warm Python/ROS startup
+- **What the two fixes change:**
+  - S18 makes reset give the disk space back exactly, and clear `/etc` and `/var/lib`, at about +50% install time.
+  - S19 removes the warm cost and 38–75% of the cold cost, for +124 MB of image.
 - **Not solved yet:**
-  - The writable disk still keeps its high-water mark.
-  - If the image file goes missing, WSL itself only says `execvpe(/bin/bash) failed`. `sparkle enter` now checks first and names the missing file.
-  - Reset doesn't yet clear `/etc` and `/var`, or shrink the file.
+  - S18's upper file over-allocates while in use (1.25 GB for 0.7 GB of packages).
+  - erofs is a kernel module in WSL, and a pack can't load it at boot yet.
+  - If the image file goes missing, WSL itself only says `execvpe(/bin/bash) failed`. `sparkle enter` checks first and names the missing file.
 
-The fix is designed (spike S18) but not measured. Full numbers and caveats: [docs/results.md](docs/results.md).
+Full numbers and caveats: [docs/results.md](docs/results.md). S18, S19, the second image and the CLI were re-run on a quiet machine; see [methodology](docs/methodology.md#the-quiet-re-run-2026-11-01).
 
 ## Why you can trust these numbers (or check them yourself)
 
@@ -100,7 +114,7 @@ Warnings:
 | Path | What |
 |---|---|
 | [docs/design.md](docs/design.md) | Sparkle v1 design (Rust CLI, OCI images, catalog, networking) and spikes S1–S9 |
-| [docs/results.md](docs/results.md) | Benchmark results S10–S17 and the design changes they forced |
+| [docs/results.md](docs/results.md) | Benchmark results S10–S20, the second image, and the design changes they forced |
 | [docs/methodology.md](docs/methodology.md) | How the benchmarks were run, and their limits |
 | [cli/](cli) | The `sparkle` CLI (Rust, first cut) and its end-to-end run |
 | [proto/](proto) | The boot prototype: stub `mount`, `init.sh`, fixture builder |

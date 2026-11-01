@@ -3,7 +3,7 @@
 {"test":"s17","variant":"plain","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
 {"test":"s17","variant":"plain","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb2i-plain"}
 {"test":"s17","variant":"plain","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
-{"test":"s17","variant":"plain","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fea::644 debian.map.fastlydns.net deb.debian.org"}
+{"test":"s17","variant":"plain","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fe7::644 debian.map.fastlydns.net deb.debian.org"}
 {"test":"s17","variant":"plain","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
 {"test":"s17","variant":"plain","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
 {"test":"s17","variant":"plain","metric":"python_version","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
@@ -11,7 +11,7 @@
 {"test":"s17","variant":"plain","metric":"python_stdlib","value":1,"unit":"pass","run":0,"note":"3.40.1 OpenSSL 3.0.22 25 Aug 2026"}
 {"test":"s17","variant":"plain","metric":"pip_venv","value":1,"unit":"pass","run":0,"note":"/tmp/v"}
 {"test":"s17","variant":"plain","metric":"gcc_hello","value":1,"unit":"pass","run":0,"note":"hi"}
-{"test":"s17","variant":"plain","metric":"apt_install_jq","value":0,"unit":"pass","run":0,"note":"rc=100 E: Some index files failed to download. They have been ignored, or old ones used instead."}
+{"test":"s17","variant":"plain","metric":"apt_install_jq","value":1,"unit":"pass","run":0,"note":"perl: warning: Setting locale failed."}
 {"test":"s17","variant":"plain","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
 {"test":"s17","variant":"plain","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
 {"test":"s17","variant":"plain","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}
@@ -23,7 +23,7 @@
 {"test":"s17","variant":"tuned","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
 {"test":"s17","variant":"tuned","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb2i-tuned"}
 {"test":"s17","variant":"tuned","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
-{"test":"s17","variant":"tuned","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fea::644 debian.map.fastlydns.net deb.debian.org"}
+{"test":"s17","variant":"tuned","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fe7::644 debian.map.fastlydns.net deb.debian.org"}
 {"test":"s17","variant":"tuned","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
 {"test":"s17","variant":"tuned","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
 {"test":"s17","variant":"tuned","metric":"python_version","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
@@ -31,7 +31,7 @@
 {"test":"s17","variant":"tuned","metric":"python_stdlib","value":1,"unit":"pass","run":0,"note":"3.40.1 OpenSSL 3.0.22 25 Aug 2026"}
 {"test":"s17","variant":"tuned","metric":"pip_venv","value":1,"unit":"pass","run":0,"note":"/tmp/v"}
 {"test":"s17","variant":"tuned","metric":"gcc_hello","value":1,"unit":"pass","run":0,"note":"hi"}
-{"test":"s17","variant":"tuned","metric":"apt_install_jq","value":0,"unit":"pass","run":0,"note":"rc=100 E: Some index files failed to download. They have been ignored, or old ones used instead."}
+{"test":"s17","variant":"tuned","metric":"apt_install_jq","value":1,"unit":"pass","run":0,"note":"perl: warning: Setting locale failed."}
 {"test":"s17","variant":"tuned","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
 {"test":"s17","variant":"tuned","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
 {"test":"s17","variant":"tuned","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}
@@ -43,7 +43,7 @@
 {"test":"s17","variant":"sparkle","metric":"drive_c","value":1,"unit":"pass","run":0,"note":"/mnt/c/Windows"}
 {"test":"s17","variant":"sparkle","metric":"wslpath","value":1,"unit":"pass","run":0,"note":"wsl.localhostspb2i-sparkle"}
 {"test":"s17","variant":"sparkle","metric":"wslinfo","value":1,"unit":"pass","run":0,"note":"nat"}
-{"test":"s17","variant":"sparkle","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fea::644 debian.map.fastlydns.net deb.debian.org"}
+{"test":"s17","variant":"sparkle","metric":"dns_resolve","value":1,"unit":"pass","run":0,"note":"2a04:4e42:fe7::644 debian.map.fastlydns.net deb.debian.org"}
 {"test":"s17","variant":"sparkle","metric":"gpu_nvidia_smi","value":1,"unit":"pass","run":0,"note":"GPU 0: NVIDIA GeForce RTX 4060 Laptop GPU"}
 {"test":"s17","variant":"sparkle","metric":"gpu_dxg","value":1,"unit":"pass","run":0,"note":""}
 {"test":"s17","variant":"sparkle","metric":"python_version","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
@@ -51,7 +51,7 @@
 {"test":"s17","variant":"sparkle","metric":"python_stdlib","value":1,"unit":"pass","run":0,"note":"3.40.1 OpenSSL 3.0.22 25 Aug 2026"}
 {"test":"s17","variant":"sparkle","metric":"pip_venv","value":1,"unit":"pass","run":0,"note":"/tmp/v"}
 {"test":"s17","variant":"sparkle","metric":"gcc_hello","value":1,"unit":"pass","run":0,"note":"hi"}
-{"test":"s17","variant":"sparkle","metric":"apt_install_jq","value":0,"unit":"pass","run":0,"note":"rc=100 E: Some index files failed to download. They have been ignored, or old ones used instead."}
+{"test":"s17","variant":"sparkle","metric":"apt_install_jq","value":1,"unit":"pass","run":0,"note":"perl: warning: Setting locale failed."}
 {"test":"s17","variant":"sparkle","metric":"dpkg_audit","value":1,"unit":"pass","run":0,"note":"clean"}
 {"test":"s17","variant":"sparkle","metric":"apt_check","value":1,"unit":"pass","run":0,"note":"Reading package lists..."}
 {"test":"s17","variant":"sparkle","metric":"wslg_x11","value":1,"unit":"pass","run":0,"note":"DISPLAY=:0, socket ok"}

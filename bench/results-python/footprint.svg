@@ -4,19 +4,19 @@
 <line x1="60" x2="620" y1="280.0" y2="280.0" stroke="#e5e5e5"/>
 <text x="54" y="284.0" text-anchor="end" fill="#555">0.0 GB</text>
 <line x1="60" x2="620" y1="225.0" y2="225.0" stroke="#e5e5e5"/>
-<text x="54" y="229.0" text-anchor="end" fill="#555">0.4 GB</text>
+<text x="54" y="229.0" text-anchor="end" fill="#555">0.3 GB</text>
 <line x1="60" x2="620" y1="170.0" y2="170.0" stroke="#e5e5e5"/>
 <text x="54" y="174.0" text-anchor="end" fill="#555">0.7 GB</text>
 <line x1="60" x2="620" y1="115.0" y2="115.0" stroke="#e5e5e5"/>
-<text x="54" y="119.0" text-anchor="end" fill="#555">1.1 GB</text>
+<text x="54" y="119.0" text-anchor="end" fill="#555">1.0 GB</text>
 <line x1="60" x2="620" y1="60.0" y2="60.0" stroke="#e5e5e5"/>
 <text x="54" y="64.0" text-anchor="end" fill="#555">1.4 GB</text>
 <rect x="86.7" y="88.7" width="40.0" height="191.3" fill="#d1495b"/>
-<text x="106.7" y="84.7" text-anchor="middle" font-size="10">1.22</text>
+<text x="106.7" y="84.7" text-anchor="middle" font-size="10">1.19</text>
 <rect x="131.1" y="88.7" width="40.0" height="191.3" fill="#edae49"/>
-<text x="151.1" y="84.7" text-anchor="middle" font-size="10">1.22</text>
-<rect x="175.6" y="197.6" width="40.0" height="82.4" fill="#00798c"/>
-<text x="195.6" y="193.6" text-anchor="middle" font-size="10">0.53</text>
+<text x="151.1" y="84.7" text-anchor="middle" font-size="10">1.19</text>
+<rect x="175.6" y="195.3" width="40.0" height="84.7" fill="#00798c"/>
+<text x="195.6" y="191.3" text-anchor="middle" font-size="10">0.53</text>
 <text x="153.3" y="298" text-anchor="middle">fresh import</text>
 <text x="340.0" y="298" text-anchor="middle">after the S11-S15 workload</text>
 <text x="526.7" y="298" text-anchor="middle">after wsl --manage --compact</text>

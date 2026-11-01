@@ -13,6 +13,31 @@ Microsoft Windows 11 Home
 SAMSUNG MZVL2512HDJD-00BL2
 ```
 
+## CLI end to end (sparkle.exe, ros:jazzy-ros-base)
+
+| metric | sparkle |
+|---|---|
+| download_ms | 8,400 ms |
+| add_flatten_ms_first | 6,000 ms |
+| add_build_ms_first | 13.0 s |
+| add_import_ms_first | 800 ms |
+| add_total_ms_first | 28.3 s |
+| add_flatten_ms | **5,900 ms** <sub>5,900 ms–5,900 ms, n=3</sub> |
+| add_build_ms | **15.0 s** <sub>14.7 s–15.0 s, n=3</sub> |
+| add_import_ms | **700 ms** <sub>700 ms–700 ms, n=3</sub> |
+| add_total_ms | **21.7 s** <sub>21.4 s–21.7 s, n=3</sub> |
+| pack_bytes | 449.2 MB |
+| enter_cold_ms | **2,444 ms** <sub>2,352 ms–2,843 ms, n=3</sub> |
+| enter_warm_ms | **889 ms** <sub>824 ms–923 ms, n=3</sub> |
+| reset_ms | **352 ms** <sub>342 ms–357 ms, n=3</sub> |
+| reset_then_enter_ms | **2,408 ms** <sub>2,340 ms–2,610 ms, n=3</sub> |
+| reset_dropped_marker | **1** <sub>1–1, n=3</sub> |
+| missing_image_rc | 1 |
+| ejected | 1 |
+
+- `enter_cold_ms`: `sparkle: pkgs=194`
+- `missing_image_rc`: `sparkle: sparkle: the image for pack e2e is missing: <home>/sparkle-cli-e2e/packs/e2e/image.sqfs`
+
 ## S10 Fixtures: build, import, size at rest, equivalence
 
 | metric | plain | tuned | sparkle | all |
@@ -180,8 +205,8 @@ SAMSUNG MZVL2512HDJD-00BL2
 
 | metric | old | up |
 |---|---|---|
-| footprint_bytes_fresh | 482,791,424 | 490,393,600 |
-| vhdx_bytes_fresh | 146,800,640 | 146,800,640 |
+| footprint_bytes_fresh | 449,236,992 | 456,839,168 |
+| vhdx_bytes_fresh | 113,246,208 | 113,246,208 |
 | dpkg_installed_fresh | 599 | 599 |
 | dpkg_audit_lines_fresh | 0 | 0 |
 | extra_vs_baseline_fresh | 0 | 0 |
@@ -193,14 +218,14 @@ SAMSUNG MZVL2512HDJD-00BL2
 | ok_etc_overlay_fresh | 0 | 1 |
 | ok_varlib_overlay_fresh | 0 | 1 |
 | upper_alloc_bytes_fresh | — | 7,602,176 |
-| install_ms | **37.7 s** <sub>35.2 s–40.2 s, n=2</sub> | **60.5 s** <sub>60.5 s–60.5 s, n=2</sub> |
-| install_df_delta_bytes | **509.4 MB** <sub>509.0 MB–509.8 MB, n=2</sub> | **0.2 MB** <sub>0.1 MB–0.2 MB, n=2</sub> |
+| install_ms | **33.9 s** <sub>33.7 s–34.0 s, n=2</sub> | **51.4 s** <sub>47.8 s–55.0 s, n=2</sub> |
+| install_df_delta_bytes | **509.5 MB** <sub>509.1 MB–509.8 MB, n=2</sub> | **0.2 MB** <sub>0.1 MB–0.2 MB, n=2</sub> |
 | dpkg_installed | **733** <sub>733–733, n=2</sub> | **733** <sub>733–733, n=2</sub> |
 | dpkg_audit_lines | **0** <sub>0–0, n=2</sub> | **0** <sub>0–0, n=2</sub> |
-| footprint_bytes_installed1 | 1,153,880,064 | 1,626,787,840 |
+| footprint_bytes_installed1 | 1,153,880,064 | 1,728,565,248 |
 | vhdx_bytes_installed1 | 817,889,280 | 146,800,640 |
-| upper_alloc_bytes_installed1 | — | 1,144,520,704 |
-| reset_boot_ms | **1,960 ms** <sub>1,617 ms–2,302 ms, n=2</sub> | **1,897 ms** <sub>1,735 ms–2,059 ms, n=2</sub> |
+| upper_alloc_bytes_installed1 | — | 1,246,887,936 |
+| reset_boot_ms | **1,746 ms** <sub>1,523 ms–1,970 ms, n=2</sub> | **2,101 ms** <sub>1,976 ms–2,226 ms, n=2</sub> |
 | footprint_bytes_reset1 | 1,153,880,064 | 490,393,600 |
 | vhdx_bytes_reset1 | 817,889,280 | 146,800,640 |
 | upper_alloc_bytes_reset1 | — | 7,602,176 |
@@ -214,7 +239,7 @@ SAMSUNG MZVL2512HDJD-00BL2
 | ros2_pkgs_reset1 | 194 | 194 |
 | ok_etc_overlay_reset1 | 0 | 1 |
 | ok_varlib_overlay_reset1 | 0 | 1 |
-| footprint_bytes_installed2 | 1,321,652,224 | 1,856,884,736 |
+| footprint_bytes_installed2 | 1,321,652,224 | 1,854,459,904 |
 | vhdx_bytes_installed2 | 985,661,440 | 146,800,640 |
 | footprint_bytes_reset2 | 1,321,652,224 | 490,393,600 |
 | vhdx_bytes_reset2 | 985,661,440 | 146,800,640 |
@@ -228,43 +253,43 @@ SAMSUNG MZVL2512HDJD-00BL2
 | ros2_pkgs_reset2 | 194 | 194 |
 | ok_etc_overlay_reset2 | 0 | 1 |
 | ok_varlib_overlay_reset2 | 0 | 1 |
-| upper_alloc_bytes_installed2 | — | 1,374,814,208 |
+| upper_alloc_bytes_installed2 | — | 1,372,979,200 |
 | upper_alloc_bytes_reset2 | — | 7,602,176 |
-| startup_ms | **720 ms** <sub>611 ms–1,007 ms, n=3</sub> | **811 ms** <sub>801 ms–817 ms, n=3</sub> |
-| vhdx_bytes_compact | 482,344,960 | 131,072,000 |
-| vhdx_bytes_fstrim_compact | 482,344,960 | 133,169,152 |
-| footprint_bytes_fstrim_compact | 818,335,744 | 568,250,368 |
+| startup_ms | **708 ms** <sub>545 ms–805 ms, n=5</sub> | **676 ms** <sub>597 ms–776 ms, n=5</sub> |
+| vhdx_bytes_compact | 478,150,656 | 124,780,544 |
+| vhdx_bytes_fstrim_compact | 479,199,232 | 125,829,120 |
+| footprint_bytes_fstrim_compact | 815,190,016 | 586,403,840 |
 
 
 ## S19 Cold-read cost by image format, and prewarm (ms)
 
 | metric | plain | sq128 | sq1m | sqraw | erolz4 | eroraw | sqraw_direct |
 |---|---|---|---|---|---|---|---|
-| build_ms | — | — | 13.7 s | 11.6 s | 170.0 s | 202.4 s | — |
+| build_ms | — | — | 12.5 s | 9,237 ms | 156.8 s | 195.4 s | — |
 | image_bytes | — | 336.0 MB | 324.2 MB | 848.7 MB | 460.0 MB | 864.9 MB | — |
 | tree_bytes | 860.0 MB | — | — | — | — | — | — |
-| metadata_walk_cold | **718 ms** <sub>698 ms–809 ms, n=5</sub> | **385 ms** <sub>250 ms–747 ms, n=5</sub> | **427 ms** <sub>234 ms–859 ms, n=5</sub> | **272 ms** <sub>222 ms–610 ms, n=5</sub> | **831 ms** <sub>418 ms–1,219 ms, n=5</sub> | **870 ms** <sub>693 ms–1,178 ms, n=5</sub> | **301 ms** <sub>218 ms–456 ms, n=5</sub> |
-| python_import_rclpy_cold | **469 ms** <sub>455 ms–480 ms, n=5</sub> | **991 ms** <sub>875 ms–1,055 ms, n=5</sub> | **1,151 ms** <sub>1,013 ms–2,137 ms, n=5</sub> | **1,265 ms** <sub>1,237 ms–1,341 ms, n=5</sub> | **682 ms** <sub>474 ms–767 ms, n=5</sub> | **770 ms** <sub>652 ms–1,183 ms, n=5</sub> | **1,305 ms** <sub>668 ms–1,456 ms, n=5</sub> |
-| ros2_pkg_list_cold | **603 ms** <sub>589 ms–643 ms, n=5</sub> | **1,241 ms** <sub>991 ms–1,425 ms, n=5</sub> | **1,554 ms** <sub>1,282 ms–1,824 ms, n=5</sub> | **1,238 ms** <sub>1,200 ms–1,490 ms, n=5</sub> | **1,049 ms** <sub>858 ms–1,209 ms, n=5</sub> | **1,030 ms** <sub>662 ms–1,327 ms, n=5</sub> | **1,536 ms** <sub>1,320 ms–1,768 ms, n=5</sub> |
-| gxx_rclcpp_headers_cold | **2,118 ms** <sub>2,058 ms–2,167 ms, n=5</sub> | **3,997 ms** <sub>3,923 ms–4,543 ms, n=5</sub> | **4,684 ms** <sub>4,292 ms–5,767 ms, n=5</sub> | **4,277 ms** <sub>4,115 ms–4,844 ms, n=5</sub> | **2,745 ms** <sub>2,344 ms–2,814 ms, n=5</sub> | **2,885 ms** <sub>2,505 ms–3,185 ms, n=5</sub> | **4,853 ms** <sub>4,177 ms–5,149 ms, n=5</sub> |
-| metadata_walk_warm | **39 ms** <sub>37 ms–51 ms, n=5</sub> | **98 ms** <sub>85 ms–212 ms, n=5</sub> | **177 ms** <sub>86 ms–231 ms, n=5</sub> | **96 ms** <sub>84 ms–120 ms, n=5</sub> | **35 ms** <sub>35 ms–47 ms, n=5</sub> | **36 ms** <sub>34 ms–48 ms, n=5</sub> | **166 ms** <sub>83 ms–233 ms, n=5</sub> |
-| python_import_rclpy_warm | **153 ms** <sub>151 ms–236 ms, n=5</sub> | **224 ms** <sub>175 ms–1,079 ms, n=5</sub> | **197 ms** <sub>179 ms–370 ms, n=5</sub> | **231 ms** <sub>183 ms–256 ms, n=5</sub> | **168 ms** <sub>165 ms–253 ms, n=5</sub> | **163 ms** <sub>159 ms–248 ms, n=5</sub> | **206 ms** <sub>193 ms–290 ms, n=5</sub> |
-| ros2_pkg_list_warm | **298 ms** <sub>218 ms–387 ms, n=5</sub> | **323 ms** <sub>239 ms–857 ms, n=5</sub> | **282 ms** <sub>249 ms–479 ms, n=5</sub> | **418 ms** <sub>261 ms–544 ms, n=5</sub> | **231 ms** <sub>219 ms–368 ms, n=5</sub> | **234 ms** <sub>224 ms–341 ms, n=5</sub> | **284 ms** <sub>245 ms–467 ms, n=5</sub> |
-| gxx_rclcpp_headers_warm | **2,083 ms** <sub>1,875 ms–3,844 ms, n=5</sub> | **2,820 ms** <sub>1,847 ms–5,395 ms, n=5</sub> | **2,423 ms** <sub>1,817 ms–3,646 ms, n=5</sub> | **1,930 ms** <sub>1,831 ms–3,273 ms, n=5</sub> | **1,946 ms** <sub>1,802 ms–3,563 ms, n=5</sub> | **2,058 ms** <sub>1,842 ms–3,414 ms, n=5</sub> | **1,955 ms** <sub>1,853 ms–3,991 ms, n=5</sub> |
-| prewarm_metadata_walk_ms_prew | — | **2,097 ms** <sub>1,735 ms–2,269 ms, n=5</sub> | — | — | — | **5,679 ms** <sub>5,246 ms–9,322 ms, n=5</sub> | — |
-| prewarm_metadata_walk_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–351, n=5</sub> | — |
-| metadata_walk_prew | — | **335 ms** <sub>241 ms–509 ms, n=5</sub> | — | — | — | **294 ms** <sub>210 ms–390 ms, n=5</sub> | — |
-| prewarm_python_import_rclpy_ms_prew | — | **1,927 ms** <sub>1,705 ms–2,114 ms, n=5</sub> | — | — | — | **5,886 ms** <sub>5,145 ms–6,557 ms, n=5</sub> | — |
-| prewarm_python_import_rclpy_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>-363–330, n=5</sub> | — |
-| python_import_rclpy_prew | — | **522 ms** <sub>449 ms–796 ms, n=5</sub> | — | — | — | **474 ms** <sub>333 ms–612 ms, n=5</sub> | — |
-| prewarm_ros2_pkg_list_ms_prew | — | **2,060 ms** <sub>1,894 ms–2,443 ms, n=5</sub> | — | — | — | **5,350 ms** <sub>5,033 ms–6,576 ms, n=5</sub> | — |
+| metadata_walk_cold | **721 ms** <sub>690 ms–846 ms, n=5</sub> | **459 ms** <sub>302 ms–534 ms, n=5</sub> | **363 ms** <sub>268 ms–569 ms, n=5</sub> | **474 ms** <sub>232 ms–692 ms, n=5</sub> | **714 ms** <sub>687 ms–970 ms, n=5</sub> | **982 ms** <sub>553 ms–1,202 ms, n=5</sub> | **531 ms** <sub>488 ms–927 ms, n=5</sub> |
+| python_import_rclpy_cold | **482 ms** <sub>467 ms–538 ms, n=5</sub> | **869 ms** <sub>739 ms–1,271 ms, n=5</sub> | **1,362 ms** <sub>1,049 ms–1,702 ms, n=5</sub> | **1,171 ms** <sub>1,014 ms–2,149 ms, n=5</sub> | **723 ms** <sub>516 ms–829 ms, n=5</sub> | **808 ms** <sub>717 ms–880 ms, n=5</sub> | **1,038 ms** <sub>831 ms–1,708 ms, n=5</sub> |
+| ros2_pkg_list_cold | **649 ms** <sub>621 ms–655 ms, n=5</sub> | **1,350 ms** <sub>1,277 ms–1,487 ms, n=5</sub> | **1,653 ms** <sub>1,441 ms–1,910 ms, n=5</sub> | **1,618 ms** <sub>1,443 ms–1,955 ms, n=5</sub> | **950 ms** <sub>683 ms–1,126 ms, n=5</sub> | **1,043 ms** <sub>907 ms–1,216 ms, n=5</sub> | **1,467 ms** <sub>1,370 ms–1,908 ms, n=5</sub> |
+| gxx_rclcpp_headers_cold | **2,204 ms** <sub>2,064 ms–2,309 ms, n=5</sub> | **4,455 ms** <sub>4,404 ms–4,888 ms, n=5</sub> | **4,476 ms** <sub>4,454 ms–5,170 ms, n=5</sub> | **4,258 ms** <sub>3,742 ms–5,336 ms, n=5</sub> | **2,756 ms** <sub>2,380 ms–2,964 ms, n=5</sub> | **2,657 ms** <sub>2,415 ms–2,958 ms, n=5</sub> | **4,438 ms** <sub>4,027 ms–5,531 ms, n=5</sub> |
+| metadata_walk_warm | **39 ms** <sub>39 ms–42 ms, n=5</sub> | **131 ms** <sub>87 ms–160 ms, n=5</sub> | **156 ms** <sub>106 ms–217 ms, n=5</sub> | **106 ms** <sub>95 ms–199 ms, n=5</sub> | **36 ms** <sub>35 ms–36 ms, n=5</sub> | **35 ms** <sub>35 ms–39 ms, n=5</sub> | **125 ms** <sub>83 ms–227 ms, n=5</sub> |
+| python_import_rclpy_warm | **161 ms** <sub>159 ms–164 ms, n=5</sub> | **248 ms** <sub>197 ms–250 ms, n=5</sub> | **217 ms** <sub>193 ms–235 ms, n=5</sub> | **204 ms** <sub>187 ms–248 ms, n=5</sub> | **168 ms** <sub>158 ms–170 ms, n=5</sub> | **165 ms** <sub>157 ms–182 ms, n=5</sub> | **203 ms** <sub>187 ms–356 ms, n=5</sub> |
+| ros2_pkg_list_warm | **226 ms** <sub>215 ms–232 ms, n=5</sub> | **295 ms** <sub>284 ms–354 ms, n=5</sub> | **282 ms** <sub>266 ms–287 ms, n=5</sub> | **269 ms** <sub>253 ms–303 ms, n=5</sub> | **240 ms** <sub>220 ms–258 ms, n=5</sub> | **232 ms** <sub>225 ms–255 ms, n=5</sub> | **285 ms** <sub>246 ms–311 ms, n=5</sub> |
+| gxx_rclcpp_headers_warm | **1,892 ms** <sub>1,863 ms–2,716 ms, n=5</sub> | **2,075 ms** <sub>1,974 ms–2,803 ms, n=5</sub> | **2,018 ms** <sub>1,934 ms–2,191 ms, n=5</sub> | **1,878 ms** <sub>1,832 ms–2,090 ms, n=5</sub> | **1,992 ms** <sub>1,864 ms–2,199 ms, n=5</sub> | **1,935 ms** <sub>1,843 ms–2,172 ms, n=5</sub> | **1,938 ms** <sub>1,846 ms–2,039 ms, n=5</sub> |
+| prewarm_metadata_walk_ms_prew | — | **1,959 ms** <sub>1,854 ms–2,324 ms, n=5</sub> | — | — | — | **5,650 ms** <sub>4,755 ms–6,367 ms, n=5</sub> | — |
+| prewarm_metadata_walk_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
+| metadata_walk_prew | — | **353 ms** <sub>210 ms–413 ms, n=5</sub> | — | — | — | **352 ms** <sub>253 ms–387 ms, n=5</sub> | — |
+| prewarm_python_import_rclpy_ms_prew | — | **2,016 ms** <sub>1,619 ms–2,097 ms, n=5</sub> | — | — | — | **6,025 ms** <sub>5,530 ms–6,402 ms, n=5</sub> | — |
+| prewarm_python_import_rclpy_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
+| python_import_rclpy_prew | — | **566 ms** <sub>491 ms–872 ms, n=5</sub> | — | — | — | **362 ms** <sub>333 ms–420 ms, n=5</sub> | — |
+| prewarm_ros2_pkg_list_ms_prew | — | **1,930 ms** <sub>1,677 ms–2,247 ms, n=5</sub> | — | — | — | **5,744 ms** <sub>5,137 ms–6,468 ms, n=5</sub> | — |
 | prewarm_ros2_pkg_list_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
-| ros2_pkg_list_prew | — | **719 ms** <sub>553 ms–1,101 ms, n=5</sub> | — | — | — | **528 ms** <sub>467 ms–780 ms, n=5</sub> | — |
-| prewarm_gxx_rclcpp_headers_ms_prew | — | **1,984 ms** <sub>1,614 ms–2,214 ms, n=5</sub> | — | — | — | **5,220 ms** <sub>4,648 ms–6,046 ms, n=5</sub> | — |
+| ros2_pkg_list_prew | — | **680 ms** <sub>568 ms–740 ms, n=5</sub> | — | — | — | **543 ms** <sub>382 ms–710 ms, n=5</sub> | — |
+| prewarm_gxx_rclcpp_headers_ms_prew | — | **1,833 ms** <sub>1,482 ms–1,992 ms, n=5</sub> | — | — | — | **6,135 ms** <sub>5,109 ms–7,115 ms, n=5</sub> | — |
 | prewarm_gxx_rclcpp_headers_cache_mb_prew | — | **524** <sub>524–524, n=5</sub> | — | — | — | **330** <sub>330–330, n=5</sub> | — |
-| gxx_rclcpp_headers_prew | — | **3,784 ms** <sub>3,404 ms–3,797 ms, n=5</sub> | — | — | — | **2,504 ms** <sub>2,443 ms–2,586 ms, n=5</sub> | — |
-| metadata_walk_race | — | **2,667 ms** <sub>2,282 ms–3,202 ms, n=5</sub> | — | — | — | **1,381 ms** <sub>1,305 ms–1,667 ms, n=5</sub> | — |
-| python_import_rclpy_race | — | **2,607 ms** <sub>1,776 ms–3,620 ms, n=5</sub> | — | — | — | **1,144 ms** <sub>975 ms–1,228 ms, n=5</sub> | — |
-| ros2_pkg_list_race | — | **2,900 ms** <sub>2,658 ms–4,220 ms, n=5</sub> | — | — | — | **1,405 ms** <sub>1,204 ms–2,222 ms, n=5</sub> | — |
-| gxx_rclcpp_headers_race | — | **5,743 ms** <sub>5,529 ms–6,201 ms, n=5</sub> | — | — | — | **3,016 ms** <sub>2,723 ms–3,116 ms, n=5</sub> | — |
+| gxx_rclcpp_headers_prew | — | **3,734 ms** <sub>3,215 ms–3,996 ms, n=5</sub> | — | — | — | **2,372 ms** <sub>2,290 ms–3,238 ms, n=5</sub> | — |
+| metadata_walk_race | — | **2,472 ms** <sub>2,274 ms–3,451 ms, n=5</sub> | — | — | — | **1,505 ms** <sub>1,187 ms–1,753 ms, n=5</sub> | — |
+| python_import_rclpy_race | — | **2,297 ms** <sub>1,430 ms–2,378 ms, n=5</sub> | — | — | — | **988 ms** <sub>887 ms–1,223 ms, n=5</sub> | — |
+| ros2_pkg_list_race | — | **2,304 ms** <sub>2,260 ms–2,562 ms, n=5</sub> | — | — | — | **1,361 ms** <sub>1,095 ms–1,669 ms, n=5</sub> | — |
+| gxx_rclcpp_headers_race | — | **5,663 ms** <sub>4,942 ms–5,848 ms, n=5</sub> | — | — | — | **2,737 ms** <sub>2,649 ms–2,971 ms, n=5</sub> | — |
 

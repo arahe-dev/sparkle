@@ -27,6 +27,7 @@ TITLES = {
     "s18": "S18 Reclaimable upper layer",
     "s19": "S19 Cold-read cost by image format, and prewarm (ms)",
     "s20": "S20 Export and restore",
+    "cli": "CLI end to end (sparkle.exe, ros:jazzy-ros-base)",
 }
 # Tests whose variants are not the three distros.
 TEST_VARIANTS = {"s18": ["old", "up"], "s19": ["plain", "sq128", "sq1m", "sqraw", "erolz4", "eroraw", "sqraw_direct"]}

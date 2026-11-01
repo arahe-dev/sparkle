@@ -29,6 +29,9 @@ There is no Sparkle binary yet.
 | Benchmarks that restart WSL make Windows re-attach devices and refresh Explorer | Hold distros open (`bench/run-quiet.sh`); keep shutdowns to one per run; warn the user before S11/S16 |
 | A timed "kill during X" can fire before X starts (S16's first power cut hit while the debs were still being copied) | Poll the guest for the process (`pgrep -x dpkg`) and cut only once it's seen, and record that it was seen. Check the tool's own log (`/var/log/dpkg.log`) afterwards |
 | GitHub over HTTPS may reset on some networks | Use a proxy: `git -c http.proxy=http://127.0.0.1:8377 push` |
+| `tee /dev/stderr` in a script whose stderr is a log file reopens and truncates that log | Use `tee >(cat >&2)` |
+| The helper distro has no `kmod` (`modprobe`/`insmod`), and WSL builds erofs as a module | Load it with the static busybox: `busybox insmod` on the `.ko` under `/usr/lib/modules/$(uname -r)` (see `bench/s19-fixtures.sh`) |
+| A failed benchmark script still truncates its raw file at start | Restore it from git (`git checkout -- bench/results/raw/sNN.jsonl`) before committing |
 
 ## Running
 

@@ -1,6 +1,6 @@
 # Results: Sparkle layout vs plain WSL
 
-Benchmark spikes S10–S17, run 2026-10-30/31.
+Benchmark spikes S10–S20, run 2026-10-30/31; S18, S19, the second image and the CLI re-run on a quiet machine on 2026-11-01.
 - Every number below comes from [bench/results/summary.md](../bench/results/summary.md).
 - That summary is generated from the raw measurements in [bench/results/raw/](../bench/results/raw).
 - How the runs were made fair, and what they don't show, is in [methodology.md](methodology.md). Read that page before quoting any of this.
@@ -45,14 +45,16 @@ Benchmark spikes S10–S17, run 2026-10-30/31.
 
 **Bottom line:**
 - **Sparkle wins on space.** A fresh pack takes 59% less disk. A used pack takes about 30% less, because system files stay in a fixed-size image.
-- **Sparkle can reset the package set** in about 2 s. In this prototype, reset doesn't shrink the disk file or clean `/etc` and `/var`.
+- **Sparkle can reset the package set** in about 2 s. With the S10–S17 layout, reset doesn't shrink the disk file or clean `/etc` and `/var`. With S18's upper file it does both: package configs, dpkg state and the space go with the file.
 - **Sparkle loses on speed:**
   - about 0.1–0.2 s per cold start or new login shell
   - about 2× on the first read of many files after the guest cache is dropped (a Windows reboot is likely worse)
   - about 20% on warm Python/ROS command startup (30–37% vs tuned)
   - CPU-bound work (compiling, building) is the same.
 - **Failures recover like plain WSL.** A VM killed mid-install was repaired by the usual `dpkg --configure -a` + `apt-get install -f` (n=1 per variant). The one Sparkle-only failure tested, a missing image file, shows a confusing error (S16).
-- **Disk growth is not solved.** The writable disk keeps its high-water mark like any WSL disk, and compaction gains are lost on the next heavy use. The fix is designed (S18) but not measured.
+- **Disk growth is solved for installed packages, at a price (S18).** With the upper layer in its own file, reset returned the pack to exactly the same size twice (490 MB, from 1.73 and 1.85 GB). The price: installs about 50% slower, and the upper file over-allocates while in use. The seed disk (`/home`, logs) still keeps its high-water mark.
+- **Most of the speed cost has a fix (S19).** Switching the image from squashfs to erofs removes the warm cost and 38–75% of the cold gap, for +124 MB of image. It needs the erofs kernel module loaded at boot, which the pack can't do yet.
+- **The approach is not ROS-specific.** A Debian `python:3.12` image shows the same disk saving (−56%) and the same "slower cold, same warm" shape.
 
 ## S10 — Same bytes in every variant
 
@@ -255,12 +257,11 @@ Earlier runs of S17 had three test bugs, fixed before these results:
 
 ## Second image: `python:3.12-bookworm` (Debian 12, no ROS)
 
-Does the layout hold for an image that isn't Ubuntu or ROS? Run 2026-10-31 with `bash bench/run-python.sh`, same machine.
+Does the layout hold for an image that isn't Ubuntu or ROS? First run 2026-10-31; re-run in full on 2026-11-01 on a quiet machine (see [methodology.md](methodology.md#the-quiet-re-run-2026-11-01)) with `bash bench/run-python.sh`. The tables show the quiet re-run.
 - Numbers come from [bench/results-python/summary.md](../bench/results-python/summary.md), generated from [bench/results-python/raw/](../bench/results-python/raw).
 - Image: `python:3.12-bookworm@sha256:034c3e9d…317a0` (linux/amd64), a 964 MB tree with Python 3.12.16 in `/usr/local` and gcc.
-- **Provisional.** Three other benchmark sessions shared the WSL VM and laptop during these runs. Variants were interleaved, so the load hit all three, but the absolute times are noisier than the ROS runs.
 - No `wsl --shutdown`, so there are no VM-cold rows. n = 5 per cell.
-- S11 and S12 were re-run at 22:37–22:40, once the other sessions were idle and C: had space again. The tables show that re-run. The first run (S11 at 22:20, S12 at 22:30) is in git history at commit f998d24, `bench/results-python/raw/`.
+- The first run shared the VM with three other benchmark sessions. Its data is in git history (commits f998d24 and 330ad8b, `bench/results-python/raw/`). The quiet re-run agrees with it on every headline; the differences are noted below.
 - **Not run (time box):** S11 VM-cold, S13 build, S14 apt timing, S15 growth/compaction/reset, S16 failure modes, offline `.deb` install, restore onto a second PC.
 - Limits are in [methodology.md](methodology.md#second-image-python312-bookworm-and-s20-exportrestore).
 
@@ -269,16 +270,16 @@ No change to `proto/` was needed. The stub, `init.sh` and the build script worke
 | Headline | ROS image (above) | Python image | Holds? |
 |---|---|---|---|
 | Same bytes in every variant (S10) | yes | **yes**: 27,542 entries, meta + content hashes equal | yes |
-| Disk on Windows, fresh: plain → sparkle | 1,118 → 460 MB, **−59%** | 1,221 → 526 MB, **−57%** (412 MB image + 113 MB disk) | yes |
-| Start a stopped distro (VM up) | 536 → 640 ms, +103 ms | 490 → 713 ms, **+223 ms** (wide ranges: plain 458–969, sparkle 519–935 ms). The first run, at 22:20, gave 608 → 703, +95 ms | yes, cost possibly larger |
-| Run a command in a running distro | same | 193 vs 195 ms, same | yes |
-| New login shell | +184 ms (ROS `setup.bash` reads from the image) | 197 vs 181 ms, no penalty (nothing to source) | n/a |
-| Walk metadata, cold | 0.59× (faster) | 413 → 141 ms, **0.34×** (faster) | yes |
-| Read all of `/usr` + `/opt`, cold | 1.13× | 5.23 → 7.30 s, **1.40×** | yes, a bit worse |
-| Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 112 → 367 ms, **3.3×**; vs tuned: stdlib import 1.7×, `pip --version` 4.5× | yes, worse |
-| Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 28 vs 27 ms, same; stdlib import 75 vs tuned 71 ms (+6%); pip same | yes |
-| Walk metadata, warm | 4.5× (39 → 177 ms) | 2.3× (25 → 57 ms) | yes |
-| Compatibility (S17) | 18/18 | **18/20 on every variant**. The 2 failures are the same on all three (see below) | yes |
+| Disk on Windows, fresh: plain → sparkle | 1,118 → 460 MB, **−59%** | 1,187 → 526 MB, **−56%** (412 MB image + 113 MB disk) | yes |
+| Start a stopped distro (VM up) | 536 → 640 ms, +103 ms | 590 → 734 ms, **+144 ms** (plain 568–617, sparkle 640–969 ms) | yes |
+| Run a command in a running distro | same | 171 vs 172 ms, same | yes |
+| New login shell | +184 ms (ROS `setup.bash` reads from the image) | 169 vs 184 ms, ranges overlap (nothing to source) | n/a |
+| Walk metadata, cold | 0.59× (faster) | 470 → 233 ms, **0.50×** (faster) | yes |
+| Read all of `/usr` + `/opt`, cold | 1.13× | 5.54 → 7.25 s, **1.31×** | yes, a bit worse |
+| Main tool, cold | `import rclpy` 1.8×; `g++` on rclcpp 1.9× | `gcc` small C file 86 → 325 ms, **3.8×**; vs tuned: stdlib import 2.6×, `pip --version` 2.3× | yes, worse |
+| Main tool, warm | `g++` same; `import rclpy` +19% | `gcc` 27 vs 32 ms (tuned 33), same; stdlib import 80 vs tuned 85 ms, same; pip same | yes, even better |
+| Walk metadata, warm | 4.5× (39 → 177 ms) | 3.5× (25 → 87 ms) | yes |
+| Compatibility (S17) | 18/18 | **19/20 on every variant**. The one failure is the same on all three (see below) | yes |
 
 **So the result is not ROS-specific.** The disk saving, a start-time cost, and the "slower cold, same warm" shape all repeat on a Debian image with a different layout (`/usr/local`, empty `/opt`).
 
@@ -286,23 +287,21 @@ S12 (tool speed, ms, median of 5):
 
 | | plain | tuned | sparkle |
 |---|---|---|---|
-| Read all of `/usr` + `/opt`, cold / warm | 5,229 / 490 | 4,973 / 490 | 7,304 / 675 |
-| Walk metadata, cold / warm | 413 / 25 | 420 / 25 | 141 / 57 |
-| Login shell + import 11 stdlib modules, cold / warm | 452 / 348 | 135 / 71 | 235 / 75 |
-| Login shell + `pip --version`, cold / warm | 698 / 541 | 192 / 130 | 871 / 131 |
-| `gcc -O2` small C file, cold / warm | 112 / 28 | 79 / 29 | 367 / 27 |
+| Read all of `/usr` + `/opt`, cold / warm | 5,537 / 698 | 5,378 / 630 | 7,247 / 787 |
+| Walk metadata, cold / warm | 470 / 25 | 486 / 27 | 233 / 87 |
+| Login shell + import 11 stdlib modules, cold / warm | 478 / 359 | 142 / 85 | 370 / 80 |
+| Login shell + `pip --version`, cold / warm | 735 / 584 | 202 / 164 | 474 / 162 |
+| `gcc -O2` small C file, cold / warm | 86 / 27 | 82 / 33 | 325 / 32 |
 
-**Why plain is slow on Python here:** on this image, `plain` is 4–5× slower than tuned *and* sparkle on warm Python steps (348 vs 71–75 ms). The official `python` image deletes its compiled `.pyc` files (0 under `/usr/local/lib/python3.12`, checked after the run), and user `dev` can't write there. So on plain, Python recompiles every module it imports, on every run. Tuned and sparkle set `PYTHONPYCACHEPREFIX` to `/tmp` (part of the tmpfs settings), so their compiled cache survives between runs. This is a real-world benefit of the tmpfs settings on images built like this, not of the image layout. The fair comparison for Python steps is therefore sparkle vs **tuned**: 1.7–4.5× slower cold, about the same warm. Cold sparkle times have wide ranges (for example `gcc` 188–681 ms).
+**Why plain is slow on Python here:** on this image, `plain` is about 4× slower than tuned *and* sparkle on warm Python steps (stdlib import 359 vs 80–85 ms, `pip` 584 vs 162–164 ms). The official `python` image deletes its compiled `.pyc` files (0 under `/usr/local/lib/python3.12`, checked after the run), and user `dev` can't write there. So on plain, Python recompiles every module it imports, on every run. Tuned and sparkle set `PYTHONPYCACHEPREFIX` to `/tmp` (part of the tmpfs settings), so their compiled cache survives between runs. This is a real-world benefit of the tmpfs settings on images built like this, not of the image layout. The fair comparison for Python steps is therefore sparkle vs **tuned**: 2.3–2.6× slower cold, the same warm. Cold sparkle times have wider ranges than plain's (for example `gcc` 218–475 ms).
 
-S17: all three variants pass the same 18 checks:
+S17: all three variants pass the same 19 checks:
 - default user, `cmd.exe` interop, `/mnt/c`, `wslpath`, `wslinfo`, DNS
 - `nvidia-smi -L`, `/dev/dxg`, WSLg X11 and Wayland sockets
 - Python 3.12.16, pip 25.0.1, stdlib (sqlite 3.40.1, OpenSSL), `venv`, gcc hello-world
-- `dpkg --audit` clean, `apt-get check`
+- `dpkg --audit` clean, `apt-get check`, `apt-get install jq` from the Debian mirror
 
-Two checks fail, and they fail identically on all three variants:
-- `gpu_opengl_d3d12`: this image has no `glxinfo`. Expected.
-- `apt_install_jq`: `apt-get update` failed (`Some index files failed to download`, rc=100). This is the network, not the layout. The offline `.deb` install that S14 measures on the ROS image was not repeated here.
+One check fails, identically on all three variants: `gpu_opengl_d3d12`, because this image has no `glxinfo`. Expected. (In the first run `apt_install_jq` also failed on all three, because `apt-get update` couldn't reach the mirror. It passed in the quiet re-run.)
 
 ### Export and restore (S20)
 
@@ -310,15 +309,15 @@ S16 timed `wsl --export` but never restored a backup. S20 exports each variant, 
 
 | | plain | sparkle |
 |---|---|---|
-| Export stream size | 1,047.5 MB | **22.7 MB** |
-| Export piped into `wsl --import` | 25.0 s | 1.6 s |
-| Restored distro boots, image mounted, `python3 --version` runs as `dev` | yes (693 ms) | **yes** (940 ms) |
+| Export stream size | 1,066.4 MB | **22.8 MB** |
+| Export piped into `wsl --import` | 22.8 s | 1.5 s |
+| Restored distro boots, image mounted, `python3 --version` runs as `dev` | yes (926 ms) | **yes** (918 ms) |
 
 What a Sparkle backup does and doesn't contain:
 - **`wsl --export` of a pack does not contain the image.** It holds only the small writable disk: the seed, `/etc`, `/home`, `/var` and the overlay's upper layer. The 412 MB image is a separate file on NTFS. The pack finds it by the absolute path in `/.sparkle/image`.
 - **The image still in place:** the restored pack works unchanged (row `restored_*`).
-- **The image not at that path** (another PC, or the folder moved): boot fails. A command returns rc=1 in 380 ms, and `/.sparkle/boot.log` says `IMAGE MISSING: <path>`. This is the same failure as S16's missing image (row `moved_image_*`).
-- **Fix:** put the image anywhere, write its WSL path into `/.sparkle/image`, then `wsl -t <distro>`. The next start mounts it and Python runs (row `repointed_*`, 667 ms). The write uses `/.sparkle/bin/busybox`, because nothing under `/usr` exists while the image is missing.
+- **The image not at that path** (another PC, or the folder moved): boot fails. A command returns rc=1 in 437 ms, and `/.sparkle/boot.log` says `IMAGE MISSING: <path>`. This is the same failure as S16's missing image (row `moved_image_*`).
+- **Fix:** put the image anywhere, write its WSL path into `/.sparkle/image`, then `wsl -t <distro>`. The next start mounts it and Python runs (row `repointed_*`, 1,093 ms). The write uses `/.sparkle/bin/busybox`, because nothing under `/usr` exists while the image is missing.
 
 Backup procedure for a Sparkle pack, as tested here (n = 1 per case; a restore onto a second PC was not tried):
 
@@ -333,66 +332,68 @@ wsl -t <pack>
 
 For the real tool, this means `sparkle export` should bundle the image, or record its digest so the image can be re-fetched. It should also re-point `/.sparkle/image` on import.
 
-What went wrong during these runs, recorded rather than hidden:
-- **The first restore of `plain` came out broken** (no `dev` user, rc=127). C: had filled to 100% during its import: the 1 GB export tar was written while the shared disk was nearly full. After freeing space, S20 streamed the export straight into the import (no tar on disk) and restored plain again as `spb2i-restore2-plain`. The plain row above is from that second import. A full disk during `wsl --import` gives a distro that imports "successfully" but is unusable.
+What went wrong during the first run (2026-10-31), recorded rather than hidden. The quiet re-run had none of these problems:
+- **The first restore of `plain` came out broken** (no `dev` user, rc=127). C: had filled to 100% during its import: the 1 GB export tar was written while the shared disk was nearly full. After freeing space, S20 streamed the export straight into the import (no tar on disk) and restored plain again as `spb2i-restore2-plain`. The first run's plain row came from that second import. A full disk during `wsl --import` gives a distro that imports "successfully" but is unusable.
 - Two test bugs were fixed and the affected steps re-run. The first S12 C program didn't compile (rc=1 on every variant). The first S20 re-point step called a bare `cat` that doesn't exist before the image is mounted.
 
-## S18 — Reclaimable upper layer (provisional: n = 1 per stage, other sessions running)
+## S18 — Reclaimable upper layer (n = 1 per footprint stage)
 
 **Question:** if the overlay's upper layer lives in its own file, does reset give the space back to Windows?
 
-Two packs were built from the same `image.sqfs` + `seed.tar`:
+Run 2026-11-01 on a quiet machine: one fresh VM, nothing else using WSL (see [methodology.md](methodology.md#the-quiet-re-run-2026-11-01)). Two packs were built from the same S10 `image.sqfs` + `seed.tar`, with today's `proto/stub` scripts (`bash bench/s18-setup.sh`):
 - `old`: the upper layer is on the seed disk, as in S10–S17. Reset wipes it in place.
-- `up`: the writes over `/usr`, `/opt`, `/etc` and `/var/lib` go to a sparse 64 GiB ext4 file next to the image (`/.sparkle/upper-img`, [proto/stub/init.sh](../proto/stub/init.sh)). Reset deletes that file and creates a new empty sparse one.
+- `up`: the writes over `/usr`, `/opt`, `/etc` and `/var/lib` go to a sparse 64 GiB ext4 file next to the image (`/.sparkle/upper-img`, [proto/stub/init.sh](../proto/stub/init.sh)). Reset deletes that file and the host creates a new empty sparse one.
 
 Footprint = image + seed `ext4.vhdx` + allocated bytes of the upper file (not its 64 GiB apparent size). Source: `bench/results/raw/s18.jsonl`, `bash bench/s18-reclaim.sh`.
 
 | Windows-side footprint | old | up |
 |---|---|---|
-| fresh | 483 MB | 490 MB |
-| after S14 install | 1,154 MB | 1,627 MB |
+| fresh | 449 MB | 457 MB |
+| after S14 install (134 packages) | 1,154 MB | 1,729 MB |
 | after reset | **1,154 MB** | **490 MB** |
-| after 2nd install | 1,322 MB | 1,857 MB |
+| after 2nd install | 1,322 MB | 1,854 MB |
 | after 2nd reset | **1,322 MB** | **490 MB** |
-| then `--compact` (distro stopped) | 818 MB | 568 MB |
+| then `fstrim` + `--compact` (distro stopped) | 815 MB | 586 MB |
 
-- **Reset gives the space back, exactly, every time.** `up` returned to its fresh 490,393,600 bytes after both resets. `old` kept the high-water mark (1.32 GB after two rounds), as in S15.
+- **Reset gives the space back, every time.** The upper file went back to 7.6 MB allocated after both resets, and `up`'s footprint was 490,393,600 bytes both times. `old` kept its high-water mark (1.32 GB after two rounds), as in S15.
+- **`up`'s 490 MB is 33 MB above its fresh 457 MB.** That growth is on the seed disk (113 → 147 MB) during the first boot and install round: logs, `/home`, `/root`. It did not grow again in round 2. The seed disk itself still never shrinks.
 - **Package state is clean after reset** on both: 599 packages, `dpkg --audit` empty, 0 packages beyond the baseline. On `up`, `/etc` and `/var/lib` are overlays too, so package configs and dpkg/apt state go with the file.
 - **Basics still work** on `up` after each reset: `/mnt/c`, `wslpath`, `/dev/dxg`, and `ros2 pkg list` (194 packages, same as `old`).
-- **But the upper file is wasteful while in use.** The install allocated 1.14 GB in the upper file, versus 0.67 GB of growth on `old`'s disk for the same packages. Likely cause: ext4's lazy inode-table init zeroes the inode tables of the whole 64 GiB filesystem in the background after mount, and every zeroed block is allocated on NTFS. The idle upper file kept growing (568 MB footprint after the compaction step, up from 490 MB at boot), which fits that cause. Not yet fixed. Next things to try: `mount -o noinit_itable`, fewer inodes (`mke2fs -N`), or a smaller filesystem that grows.
-- **Installs were slower:** 60.5 s on `up` vs 35–40 s on `old` (n = 2, other sessions running). Writes go through a loop device on a file on 9p/drvfs.
-- **Startup:** 811 ms vs 720 ms (n = 3, ranges overlap: 801–817 vs 611–1,007). Inconclusive.
-- **`fstrim` before `--compact` added nothing.** On `old`, `--compact` alone took the disk from 986 MB to 482 MB, and `fstrim` + `--compact` left it at 482 MB. Compaction ran with only the distro stopped (`wsl -t`), not the VM. It still left `old` 335 MB above fresh.
-- **Findings on the way:**
+- **But the upper file is wasteful while in use.** The install allocated 1.25 GB in the upper file, versus 0.70 GB of growth on `old`'s disk for the same packages. Left idle after the startup runs, the upper file grew again from 7.6 MB to about 125 MB with nothing installed. Likely cause: ext4's lazy inode-table init zeroes the inode tables of the whole 64 GiB filesystem in the background after mount, and every zeroed block is allocated on NTFS. Not yet fixed. Next things to try: `mount -o noinit_itable`, fewer inodes (`mke2fs -N`), or a smaller filesystem that grows.
+- **Installs are slower:** 47.8 and 55.0 s on `up` vs 34.0 and 33.7 s on `old` (n = 2), about +50%. Writes go through a loop device on a file on drvfs.
+- **Startup is the same:** 676 ms vs 708 ms median, ranges overlap (597–776 vs 545–805 ms, n = 5).
+- **`fstrim` before `--compact` adds nothing.** On `old`, `--compact` alone took the disk from 986 MB to 478 MB, and `fstrim` + `--compact` left it at 479 MB. Compaction ran with only the distro stopped (`wsl -t`), not the VM. `old` still ended 366 MB above fresh.
+- **Findings on the way** (from the first S18 run, 2026-10-31):
   - A file extended from inside WSL (`truncate` on drvfs) is allocated in full on NTFS. A 64 GiB `truncate` failed with "No space left on device". The host has to create the file sparse (`fsutil sparse setflag` + `fsutil file seteof`), so a guest-only reset can't recreate it. In the prototype, `touch /.sparkle/reset` on an upper-file pack deletes the file, and the next boot falls back to the seed disk until the host makes a new one.
-  - The cached `seed.tar` imports with `/` at mode 700, so user `dev` got `chdir(/) failed 13`. `chmod 755 /` was applied to both S18 distros before the run. Design item 1 says this was fixed in `proto/`, but the cached seed predates the fix.
+  - The cached S10 `seed.tar` imports with `/` at mode 700, so user `dev` got `chdir(/) failed 13`. `bench/s18-setup.sh` re-packs the seed with `/` at 755. Design item 1 says this was fixed in `proto/`, but the cached seed predates the fix.
+- The first S18 run (2026-10-31, while three other benchmark sessions shared the VM) gave the same footprint result: reset back to 490,393,600 bytes twice. Its timings were 60.5 s vs 35–40 s for installs and an inconclusive startup difference. It is in git history at commit a31785d.
 
-## S19 — Removing the speed cost: image format and prewarm (n = 5, provisional)
+## S19 — Removing the speed cost: image format and prewarm (n = 5)
 
-**Provisional:** these runs shared the PC and the WSL VM with three other benchmark sessions, so they carry extra noise. Variants were interleaved, so the noise hits all of them, but read only large gaps as real.
+Run 2026-11-01 on a quiet machine, like S18. Fixtures: `bash bench/s19-fixtures.sh` (image variants + bench distro), then `bash bench/s19-coldread.sh`.
 
-Setup: one bench distro holds every variant side by side (`bench/guest/s19-setup.sh`). Each variant's `/usr` + `/opt` is cut from the same tree. The image variants are files on NTFS, loop-mounted under an overlay with a tmpfs upper, as Sparkle mounts them. `plain` is the same tree copied onto the distro's ext4. Commands run in a `chroot` of each variant, through `su - dev -c` like S12. S12's full-read row was left out to fit the time box. Medians:
+Setup: one bench distro holds every variant side by side (`bench/guest/s19-setup.sh`). Each variant's `/usr` + `/opt` is cut from the same tree. The image variants are files on NTFS, loop-mounted under an overlay with a tmpfs upper, as Sparkle mounts them. `plain` is the same tree copied onto the distro's ext4. Commands run in a `chroot` of each variant, through `su - dev -c` like S12. S12's full-read row is left out. Medians:
 
 | | plain ext4 | **sq128** (today) | sq1m | sqraw | **erolz4** | eroraw | sqraw, no overlay |
 |---|---|---|---|---|---|---|---|
 | Image size | (tree 860 MB) | 336 MB | 324 MB | 849 MB | **460 MB** | 865 MB | (849 MB) |
-| `find` over `/usr` + `/opt`, cold | 718 ms | 385 ms | 427 ms | 272 ms | 831 ms | 870 ms | 301 ms |
-| Login shell + `import rclpy`, cold | 469 ms | 991 ms | 1,151 ms | 1,265 ms | **682 ms** | 770 ms | 1,305 ms |
-| Login shell + `ros2 pkg list`, cold | 603 ms | 1,241 ms | 1,554 ms | 1,238 ms | **1,049 ms** | 1,030 ms | 1,536 ms |
-| `g++` on rclcpp headers, cold | 2.12 s | 4.00 s | 4.68 s | 4.28 s | **2.75 s** | 2.89 s | 4.85 s |
-| `find`, warm | 39 ms | 98 ms | 177 ms | 96 ms | **35 ms** | 36 ms | 166 ms |
-| `import rclpy`, warm | 153 ms | 224 ms | 197 ms | 231 ms | **168 ms** | 163 ms | 206 ms |
-| `ros2 pkg list`, warm | 298 ms | 323 ms | 282 ms | 418 ms | **231 ms** | 234 ms | 284 ms |
-| `g++` on rclcpp headers, warm | 2.08 s | 2.82 s | 2.42 s | 1.93 s | 1.95 s | 2.06 s | 1.96 s |
+| `find` over `/usr` + `/opt`, cold | 721 ms | 459 ms | 363 ms | 474 ms | 714 ms | 982 ms | 531 ms |
+| Login shell + `import rclpy`, cold | 482 ms | 869 ms | 1,362 ms | 1,171 ms | **723 ms** | 808 ms | 1,038 ms |
+| Login shell + `ros2 pkg list`, cold | 649 ms | 1,350 ms | 1,653 ms | 1,618 ms | **950 ms** | 1,043 ms | 1,467 ms |
+| `g++` on rclcpp headers, cold | 2.20 s | 4.46 s | 4.48 s | 4.26 s | **2.76 s** | 2.66 s | 4.44 s |
+| `find`, warm | 39 ms | 131 ms | 156 ms | 106 ms | **36 ms** | 35 ms | 125 ms |
+| `import rclpy`, warm | 161 ms | 248 ms | 217 ms | 204 ms | **168 ms** | 165 ms | 203 ms |
+| `ros2 pkg list`, warm | 226 ms | 295 ms | 282 ms | 269 ms | **240 ms** | 232 ms | 285 ms |
+| `g++` on rclcpp headers, warm | 1.89 s | 2.08 s | 2.02 s | 1.88 s | 1.99 s | 1.94 s | 1.94 s |
 
-`sq128` = today's squashfs (lz4hc, 128 KiB blocks); `sq1m` = 1 MiB blocks; `sqraw` = squashfs with no compression; `erolz4` = erofs `-zlz4hc`; `eroraw` = erofs uncompressed. Image builds: squashfs 12–14 s, erofs 170–200 s (single-threaded `mkfs.erofs`).
+`sq128` = today's squashfs (lz4hc, 128 KiB blocks); `sq1m` = 1 MiB blocks; `sqraw` = squashfs with no compression; `erolz4` = erofs `-zlz4hc`; `eroraw` = erofs uncompressed. Image builds: squashfs 9–14 s, erofs 157 s (lz4hc) and 195 s (uncompressed), single-threaded `mkfs.erofs`.
 
 **How to read this:**
-- **The cold cost is squashfs, not compression.** Uncompressed squashfs is no faster than lz4hc, and 1 MiB blocks are slower. erofs on the same file, under the same overlay, cuts the cold gap to plain by 30–67%: `import rclpy` +213 ms instead of +522 ms, `ros2 pkg list` +446 ms instead of +638 ms, the header compile +0.63 s instead of +1.88 s. The kernel is built with `SQUASHFS_DECOMP_SINGLE` (one decompressor at a time), which may be part of it; that wasn't isolated.
-- **The warm cost is squashfs too, not the overlay.** erofs under the overlay is level with plain when warm (`find` 35 vs 39 ms, `import rclpy` 168 vs 153 ms, inside the noise). Dropping the overlay from uncompressed squashfs (`sqraw, no overlay`) doesn't help. The overlay-lookup hypothesis is not supported.
-- **Cold `find` is the one place squashfs wins** (385 vs 831 ms for erofs). erofs is about level with plain there.
-- **Cold still isn't plain.** erofs leaves `ros2 pkg list` about 1.7× plain cold.
-- **The warm `g++` row is noisy** (ranges up to 3.8–5.4 s in single runs). Don't read the warm compile differences.
+- **The cold cost is squashfs, not compression.** Uncompressed squashfs is no faster than lz4hc, and 1 MiB blocks are slower. erofs on the same file, under the same overlay, cuts the cold gap to plain by 38–75%: `import rclpy` +241 ms instead of +387 ms, `ros2 pkg list` +301 ms instead of +701 ms, the header compile +0.55 s instead of +2.25 s. The kernel is built with `SQUASHFS_DECOMP_SINGLE` (one decompressor at a time), which may be part of it; that wasn't isolated.
+- **The warm cost is squashfs too, not the overlay.** erofs under the overlay is level with plain when warm (`find` 36 vs 39 ms, `import rclpy` 168 vs 161 ms, `ros2 pkg list` 240 vs 226 ms). Today's squashfs is 3.4× plain on warm `find` and +54% on warm `import rclpy`. Dropping the overlay from uncompressed squashfs (`sqraw, no overlay`) doesn't help. The overlay-lookup hypothesis is not supported.
+- **Cold `find` is the one place squashfs wins** (459 vs 714 ms for erofs). erofs is level with plain there.
+- **Cold still isn't plain.** erofs leaves `import rclpy` and `ros2 pkg list` about 1.5× plain cold.
+- **Warm `g++` is the same on every variant** (1.88–2.08 s). It is CPU-bound once the headers are cached.
 
 ### Prewarm (`proto/stub/prewarm.sh`)
 
@@ -400,35 +401,28 @@ It reads `/opt/ros`, `/usr/include` and the Python stdlib and `dist-packages` at
 
 | | sq128 | eroraw |
 |---|---|---|
-| Time to warm | 1.9–2.1 s | 5.2–5.9 s |
+| Time to warm | 1.8–2.0 s | 5.7–6.1 s |
 | Page cache it adds | 524 MB | 330 MB |
-| `import rclpy`: cold / after / during | 991 / 522 / **2,607** ms | 770 / 474 / **1,144** ms |
-| `ros2 pkg list`: cold / after / during | 1,241 / 719 / **2,900** ms | 1,030 / 528 / **1,405** ms |
-| `g++` on headers: cold / after / during | 4.00 / 3.78 / **5.74** s | 2.89 / 2.50 / **3.02** s |
+| `import rclpy`: cold / after / during | 869 / 566 / **2,297** ms | 808 / 362 / **988** ms |
+| `ros2 pkg list`: cold / after / during | 1,350 / 680 / **2,304** ms | 1,043 / 543 / **1,361** ms |
+| `g++` on headers: cold / after / during | 4.46 / 3.73 / **5.66** s | 2.66 / 2.37 / **2.74** s |
 
-- **Once it's finished, prewarm brings Python and ROS to about plain cold.** It barely helps `g++`, which also reads the compiler and libraries outside the prewarmed set.
-- **While it's running, it makes things worse: 2–2.6× slower than cold.** The first command is the one a user notices, so prewarm hurts the case it was meant to fix.
+- **Once it's finished, prewarm brings Python and ROS to about plain cold** (plain: 482 and 649 ms). It barely helps `g++`, which also reads the compiler and libraries outside the prewarmed set.
+- **While it's running, it makes things worse.** On today's squashfs the first command is 1.3–2.6× slower than with no prewarm at all; on erofs 1.0–1.3×. The first command is the one a user notices, so prewarm hurts the case it was meant to fix.
 - **It costs 330–524 MB of page cache.** On squashfs it's more, likely because the loop device caches the image file as well as the decompressed files. The kernel can reclaim it, but it's RAM taken at boot.
-- One `eroraw` cache-delta sample came out negative (−363 MB): something else on the VM freed cache during that run. The other samples agree.
+- The first S19 run (2026-10-31, under load from three other sessions) reached the same conclusions with wider ranges: erofs cut the cold gap by 30–67%, and prewarm-while-running was 2–2.6× slower on squashfs. It is in git history at commit a0cee85.
 
 ### Recommendation
 
-- **Switch the image to erofs with lz4hc.** It removes all of the warm cost and most of the cold cost. Disk: 460 MB vs 336 MB, +124 MB (+37%) per image, which still leaves the image about half the size of the tree. Image builds are about 12× slower (170 s vs 14 s); `mkfs.erofs` has multithreaded options that weren't tried.
-  - **A blocker first:** WSL's kernel builds erofs as a module (`CONFIG_EROFS_FS=m`), not built in. In this test it was loaded with `insmod` from another distro. Inside a pack booted from today's seed, `/usr/lib/modules/<kernel>` was missing, so the pack can't load it itself yet. The boot path must load `erofs.ko` from WSL's modules mount before the image mounts, or fall back to squashfs.
+- **Switch the image to erofs with lz4hc.** It removes all of the warm cost and most of the cold cost. Disk: 460 MB vs 336 MB, +124 MB (+37%) per image, which still leaves the image about half the size of the tree. Image builds are about 11× slower (157 s vs 14 s); `mkfs.erofs` has multithreaded options that weren't tried. Built in CI and downloaded, as the CLI plan proposes, the build time stops mattering to users.
+  - **A blocker first:** WSL's kernel builds erofs as a module (`CONFIG_EROFS_FS=m`), not built in. In this test it was loaded by hand, with busybox `insmod` from the helper distro (`bench/s19-fixtures.sh`); one kernel serves every distro, so it was then available in the bench distro too. Inside a pack booted from today's seed, `/usr/lib/modules/<kernel>` was missing, so the pack can't load it itself yet. The boot path must load `erofs.ko` from WSL's modules mount before the image mounts, or fall back to squashfs.
   - The erofs images were loop-mounted (util-linux sets up a loop for a regular file). erofs's file-backed mode (`CONFIG_EROFS_FS_BACKED_BY_FILE=y`) skips the loop device and wasn't tried; it may cut the double caching.
-- **Don't turn prewarm on by default.** It slows the first command while it runs, and it costs 330–524 MB of RAM. It ships as opt-in: `init.sh` starts it only if `/.sparkle/prewarm.on` exists.
+- **Don't turn prewarm on by default.** It slows the first command while it runs (up to 2.6× on today's squashfs), and it costs 330–524 MB of RAM. It ships as opt-in: `init.sh` starts it only if `/.sparkle/prewarm.on` exists.
 
 ## What changes in the design
 
 1. **Boot (done in [proto/](../proto)):** park and restore all WSL mounts under `/usr` and `/opt`; re-link `wslpath`/`wslinfo`; `umask 022`; seed `/` at mode 755.
-2. **The writable disk needs its own reclaim story.** S15 shows a high-water mark, plus compaction that is partial and temporary. Proposal for spike S18:
-   - put the overlay's upper layer (user-installed packages) on its own small disk, so that reset *deletes that file* and the space returns at once, guaranteed
-   - overlay `/etc` and `/var/lib` the same way, so reset also clears package configs
-   - keep `/home` on the seed
-   - also measure `fstrim` before `--compact`
-3. **First-read and warm-lookup cost** (about 2× cold; 20–37% warm for Python/ROS) is the main speed cost. Options for spike S19:
-   - background pre-read of `/opt/ros` and `/usr/include` after boot (costs RAM)
-   - erofs, or squashfs with larger blocks or no compression for hot trees
-   - measuring a host-cold first read
+2. **The writable disk needs its own reclaim story.** S15 shows a high-water mark, plus compaction that is partial and temporary. **Measured in S18: works.** The upper layer (installed packages, `/etc`, `/var/lib`) in its own sparse file makes reset give the space back exactly. Still to fix: the file over-allocates while in use (try `noinit_itable` or fewer inodes), installs are ~50% slower, and the host must create the sparse file, so reset belongs in the CLI. `fstrim` before `--compact` adds nothing.
+3. **First-read and warm-lookup cost** (about 2× cold; 20–37% warm for Python/ROS) is the main speed cost. **Measured in S19:** erofs lz4hc removes the warm cost and most of the cold cost; larger or uncompressed squashfs blocks don't help; prewarm helps only once it has finished and is opt-in. Still to do: load `erofs.ko` at boot, and measure a host-cold first read.
 4. **A missing image must fail loudly** (S16). The user saw only `execvpe(/bin/bash) failed`. The `sparkle` CLI should check the image before it launches a pack and say what is missing and how to get it back. Backups need the image too, or its name, since `wsl --export` leaves it out.
 5. **tmpfs paths cost about 100 MB of RAM** and empty the apt lists on every boot, so Sparkle's package command must refresh them. Shipping current lists with each image avoids a slow first `apt update`.

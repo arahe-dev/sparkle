@@ -44,22 +44,22 @@ Settings (env): `SPARKLE_HOME` (default `%USERPROFILE%\sparkle`), `SPARKLE_CRANE
 
 ## End-to-end run
 
-Run on 2026-10-31, one PC, **while three other sessions were using the same WSL VM and network** (one was downloading another image at the same time). All timings are single runs and provisional. `SPARKLE_HOME` pointed at a scratch folder outside the repo.
+`bash bench/cli-e2e.sh <sparkle.exe>` on 2026-11-01, on a quiet machine (nothing else using WSL; see [methodology](../docs/methodology.md#the-quiet-re-run-2026-11-01)). It times the release binary from the host: one `add` with the download, then 3 cached `add`s (`eject` between them), 3 cold `enter`s and 3 `reset`s. Raw rows: [bench/results/raw/cli.jsonl](../bench/results/raw/cli.jsonl).
 
 | Step | Result |
 |---|---|
-| `add clitest`, attempt 1 (crane via the HTTP proxy) | **failed** after ~10 min: `saving tarball ...: unexpected EOF`. `add` reported it and left nothing behind. |
-| `add clitest`, attempt 2 (direct) | download **249.8 s** (297 MB tarball), flatten **8.0 s**, build **18.0 s** (mksquashfs 13.7 s), import **1.1 s**, total **276.9 s** |
-| `add clitest2` (download cached) | flatten 7.2 s, build 14.5 s, import 1.0 s, total **22.8 s** |
-| pack on disk after add | image.sqfs 336 MB + ext4.vhdx 113 MB = 449 MB (`ls`) |
-| `enter clitest -- 'ros2 pkg list \| wc -l'` | **194**; 3.4 s from a stopped distro, 1.4 s when already running |
-| `reset clitest` | 2.4 s (touch flag + `wsl -t sparkle-clitest`). A file written to `/usr/local/bin` before reset was gone after; `~/keep.txt` survived; boot log: `reset: upper wiped, dpkg db restored`; still 194 ROS packages |
-| `enter` with `image.sqfs` renamed away | refused before launching WSL, exit 1, with the message above; `ls` marked the pack `(image file MISSING)` |
-| `eject clitest2` | distro unregistered, folder deleted, `clitest` untouched |
+| `add e2e --image ros:jazzy-ros-base`, first (with download) | download **8.4 s** (direct, no proxy), flatten 6.0 s, build 13.0 s, import 0.8 s, total **28.3 s** |
+| `add`, image cached (n = 3) | flatten 5.9 s, build 14.7–15.0 s, import 0.7 s, total **21.4–21.7 s** |
+| pack on disk after `add` | image.sqfs 336 MB + ext4.vhdx 113 MB = 449 MB |
+| `enter e2e -- 'ros2 pkg list \| wc -l'` from a stopped distro (n = 3) | **194** packages every time; 2.35–2.84 s |
+| `enter e2e -- true`, already running (n = 3) | 0.82–0.92 s |
+| `reset e2e` (n = 3) | 0.34–0.36 s for the command (flag + `wsl -t`); the next `enter` took 2.34–2.61 s and found a file written to `/usr/local/bin` before the reset gone, 3/3 |
+| `enter` with `image.sqfs` renamed away | refused before launching WSL, exit 1: `sparkle: the image for pack e2e is missing: <home>/sparkle-cli-e2e/packs/e2e/image.sqfs` |
+| `eject e2e` | distro unregistered, folder deleted |
 
-**Against the pitch** ("working ROS 2 in about 15 s"): not met yet. With the image already downloaded, `add` took 22.8 s here (under load). The first `add` is dominated by the download (250 s at ~1.2 MB/s on this network). Most of the remaining time is mksquashfs (~14 s); flatten is 7–8 s, import ~1 s. Shipping prebuilt images, instead of building them on the user's PC, would remove both.
+**Against the pitch** ("working ROS 2 in about 15 s"): not met yet. With the image cached, `add` takes 21–22 s; most of it is building the squashfs image on the user's PC (~15 s), then flattening the layers (~6 s). Shipping prebuilt images, built in CI and downloaded, would remove both. The download itself was fast this time (8.4 s for 297 MB). On 2026-10-31 the same download took 250 s, and once failed with `unexpected EOF` through the HTTP proxy, so the network, not the tool, dominates a first `add`.
 
-An `apt-get install` test of reset was a no-op (no package lists offline), so reset was checked with a file under `/usr` instead, not with a real package.
+The first CLI run (2026-10-31, under load from three other sessions) gave 22.8 s for a cached `add`, 3.4 s for a cold `enter` and 2.4 s for `reset`. It is in git history at commit 83743a4.
 
 ## Not done / limits
 
@@ -67,5 +67,6 @@ An `apt-get install` test of reset was a no-op (no package lists offline), so re
 - **Default home collides with the repo clone.** `%USERPROFILE%\sparkle` is also where this repo is cloned on the dev PC, so packs land in `sparkle\packs\` next to the source. The test run used `SPARKLE_HOME`. The default should probably move (e.g. `%USERPROFILE%\.sparkle`).
 - **The image path is baked into the seed** (`/.sparkle/image` holds the `/mnt/c/...` path). Moving the pack folder breaks it; `enter` then reports the missing file.
 - **No catalog, no OCI digest pinning, no progress bar**, no `--platform` other than linux/amd64, no image sharing between packs.
+- **Packs use the S10–S17 layout:** squashfs image, upper layer on the seed disk. S18's reclaimable upper file and S19's erofs image are measured but not in the CLI yet (reset would have to create the sparse upper file from the host; erofs needs the kernel module loaded at boot).
 - If `add` fails before import, it deletes the pack folder it just made (the download cache is kept). If it fails after import, run `eject`.
 - `reset` runs `wsl -t` on that one distro only. It never runs `wsl --shutdown`.
