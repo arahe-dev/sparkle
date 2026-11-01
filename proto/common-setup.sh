@@ -2,6 +2,7 @@
 # variant starts from byte-identical system files.
 set -eu
 id dev >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo dev
+mkdir -p /etc/sudoers.d   # images without sudo (python:*) lack it
 echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev; chmod 440 /etc/sudoers.d/dev
 cat > /etc/profile.d/10-sparkle-env.sh <<'P'
 export GALLIUM_DRIVER=d3d12

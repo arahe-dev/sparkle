@@ -12,7 +12,7 @@ for v in "${VARIANTS[@]}"; do
   rec s10 "$v" wsl_mounts_under_usr "$(sed -n 's/^wsl_mounts //p' "$BENCH/manifest-$v.txt")" count
 done
 log "size at rest after first boot"
-wsl.exe --shutdown; sleep 2
+stop_all; sleep 2
 for v in "${VARIANTS[@]}"; do
   rec s10 "$v" vhdx_bytes "$(vhdx_bytes $v)" B
   rec s10 "$v" footprint_bytes "$(footprint $v)" B

@@ -71,8 +71,30 @@ These paths hold scratch that tools can recreate. The trade-off is RAM use, plus
   - systemd (the ROS image doesn't ship it)
   - Docker/Podman inside a pack
   - RViz/Gazebo
-  - images other than ROS base
-  - restoring a `wsl --export` backup
+  - images other than ROS base (partly done since: see "Second image" below)
+  - restoring a `wsl --export` backup (done since: S20 below)
+
+## Second image (python:3.12-bookworm) and S20 export/restore
+
+These runs live in `bench/results-python/` and come from `bash bench/run-python.sh <image.tar> <crane.exe>`. The same scripts run with an image profile set by environment variables; their defaults are the ROS image, so the main runs are unchanged:
+
+| Variable | ROS default | Python run |
+|---|---|---|
+| `SPARKLE_PROBE` (file that exists only once the image is mounted) | `/opt/ros/jazzy/setup.bash` | `/usr/local/bin/python3` |
+| `SPARKLE_GUEST` (guest-script suffix) | none | `-python` (`bench/guest/s12-python.sh`, `s17-python.sh`) |
+| `SPARKLE_NO_SHUTDOWN` | unset | `1`: restart only our own distros with `wsl -t` |
+| `SPARKLE_TREE` | `/mnt/wsl/spb-tree` | `/mnt/wsl/spb2i-tree` |
+
+Limits that apply only to these runs:
+- **Run on a shared, busy VM.** Three other sessions used the same WSL VM and laptop for S10, S17, S20 and the first S11/S12 run. Variants were interleaved, so load hits all three, but absolute times are noisier than the ROS runs. Treat them as provisional.
+- **No VM-cold numbers.** `wsl --shutdown` would have killed the other sessions' work, so S11 has only `distro_cold`, `warm` and `login_shell` rows. S10's "size at rest" is read after `wsl -t` of each distro, not after a VM shutdown.
+- **Smaller scope than the ROS runs.** Only S10, S11, S12, S17 and S20 ran. No S13 (build), S14 (apt timing), S15 (growth over use) or S16 (failure modes). "Disk fresh" is S10's footprint after first boot.
+- **Different check list.** S12 and S17 swap the ROS tools for Python/C ones (stdlib imports, `pip`, `venv`, `gcc`). There is no `sudo` check, because `python:*` images do not ship `sudo`. The WSLg/OpenGL user checks (`s17-user.sh`) still run; `glxinfo` is not in this image, so the OpenGL row fails on every variant by design.
+- **`apt install` here is online** (`apt-get update` + `jq` from deb.debian.org), not from a local .deb set like the ROS S17. It depends on the network.
+- **The image pull failed once.** The first `crane pull` ended with `unexpected EOF` after 10 minutes on this network. It was re-run with a layer cache, pinned to the digest it had resolved: `python:3.12-bookworm@sha256:034c3e9d991f148d14c32ff8350286b91420baca7757d37819c7a9cc771317a0` (linux/amd64).
+- **The shared disk filled up mid-run.** At 22:21, C: reached 100% while S20 wrote a 1 GB export tar. The plain distro imported then had no `dev` user. S20 now streams `wsl --export` into `wsl --import` with no tar on disk, and plain was restored again under a new name (`spb2i-restore2-plain`). The broken first import was left in place, not deleted. S10 and S17 had finished before the disk filled. S11 finished at 22:20:36, at the edge of it, so S11 and S12 were both re-run at 22:37–22:40 with the disk at 19 GB free and the other sessions idle; the results use the re-run. The two S11 runs disagree on the start-time cost (+95 ms, then +223 ms; n = 5 each, wide ranges). Treat it as "about 0.1–0.2 s".
+- **On this image, plain is the odd one out on warm Python steps** (4–5× slower than tuned and sparkle). Cause: the image ships no `.pyc` files and `dev` can't write them, so plain recompiles on every run, while tuned and sparkle cache them under `/tmp` via `PYTHONPYCACHEPREFIX`. The Python comparison in results.md is made against tuned.
+- **S20 restore is n = 1 per case, on one PC.** "Image in a different folder" is simulated by rewriting `/.sparkle/image` to a folder with no image, then to a copy in a new folder. A restore onto a second PC was not tested.
 
 ## Reproduce
 

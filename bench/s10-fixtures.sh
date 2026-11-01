@@ -8,14 +8,14 @@
 IMAGE_TAR=${1:?usage: s10-fixtures.sh <image.tar> [crane.exe] [busybox]}
 CRANE=${2:-crane.exe}
 BB=${3:-$BENCH/busybox}
-T=/mnt/wsl/spb-tree
+T=${SPARKLE_TREE:-/mnt/wsl/spb-tree}   # in the helper distro; parallel sessions need their own
 [ -f "$RAW/s10.jsonl" ] || : > "$RAW/s10.jsonl"
 machine_facts
 
 # Re-runs skip variants that already exist; unregister one to rebuild it.
 exists() { wsl.exe -l -q 2>/dev/null | tr -d '\0\r' | grep -qx "$(distro $1)"; }
 [ -f "$BB" ] || { echo "need a static busybox at $BB (see docs/methodology.md)"; exit 1; }
-rec s10 all busybox_sha256 "\"$(sha256sum "$BB" | cut -c1-64)\"" text
+rec s10 all busybox_sha256 "\"$(sha256sum < "$BB" | cut -c1-64)\"" text
 
 log "keep the helper distro alive; extract the image into tmpfs"
 wsl.exe -d "$TOOL" -u root -- sleep 7200 & KEEP=$!

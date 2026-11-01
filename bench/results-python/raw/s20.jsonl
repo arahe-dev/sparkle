@@ -1,0 +1,21 @@
+{"test":"s20","variant":"sparkle","metric":"export_import_ms","value":1591,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"sparkle","metric":"export_tar_bytes","value":22732800,"unit":"B","run":0,"note":""}
+{"test":"s20","variant":"sparkle","metric":"restored_boot_probe_rc","value":0,"unit":"rc","run":0,"note":"first boot of the restored distro"}
+{"test":"s20","variant":"sparkle","metric":"restored_boot_ms","value":940,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"sparkle","metric":"restored_tool","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
+{"test":"s20","variant":"sparkle","metric":"restored_default_user","value":1,"unit":"pass","run":0,"note":"dev"}
+{"test":"s20","variant":"sparkle","metric":"restored_image_path","value":0,"unit":"text","run":0,"note":"<bench>/image.sqfs"}
+{"test":"s20","variant":"sparkle","metric":"moved_original_image_path","value":0,"unit":"text","run":0,"note":"<bench>/image.sqfs"}
+{"test":"s20","variant":"sparkle","metric":"moved_image_probe_rc","value":1,"unit":"rc","run":0,"note":"image path points at a folder with no image"}
+{"test":"s20","variant":"sparkle","metric":"moved_image_boot_ms","value":380,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"sparkle","metric":"moved_image_bootlog","value":0,"unit":"text","run":0,"note":"invoked: boot-command IMAGE MISSING: <bench>/gone/image.sqfs "}
+{"test":"s20","variant":"sparkle","metric":"repointed_probe_rc","value":0,"unit":"rc","run":0,"note":"after writing the new path into /.sparkle/image"}
+{"test":"s20","variant":"sparkle","metric":"repointed_boot_ms","value":667,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"sparkle","metric":"repointed_tool","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
+{"test":"s20","variant":"sparkle","metric":"repointed_bootlog","value":0,"unit":"text","run":0,"note":"--- boot start uptime=241.83 pid=42 already mounted "}
+{"test":"s20","variant":"plain","metric":"export_import_ms","value":24975,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"plain","metric":"export_tar_bytes","value":1047531520,"unit":"B","run":0,"note":""}
+{"test":"s20","variant":"plain","metric":"restored_boot_probe_rc","value":0,"unit":"rc","run":0,"note":"first boot of the restored distro"}
+{"test":"s20","variant":"plain","metric":"restored_boot_ms","value":693,"unit":"ms","run":0,"note":""}
+{"test":"s20","variant":"plain","metric":"restored_tool","value":1,"unit":"pass","run":0,"note":"Python 3.12.16"}
+{"test":"s20","variant":"plain","metric":"restored_default_user","value":1,"unit":"pass","run":0,"note":"dev"}

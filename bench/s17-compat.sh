@@ -5,7 +5,7 @@
 for v in "${VARIANTS[@]}"; do
   u=$(wsl.exe -d "$(distro $v)" --cd / --exec /usr/bin/whoami 2>/dev/null | tr -d '\r')
   rec s17 "$v" default_user "$( [ "$u" = dev ] && echo 1 || echo 0)" pass 0 "$u"
-  wx "$(distro $v)" root "$BENCH_WSL" < "$REPO/bench/guest/s17.sh" | while read -r c res detail; do
+  wx "$(distro $v)" root "$BENCH_WSL" < "$REPO/bench/guest/s17$GUEST.sh" | while read -r c res detail; do
     rec s17 "$v" "$c" "$( [ "$res" = PASS ] && echo 1 || echo 0)" pass 0 "$(echo "$detail" | tr -d '"\')"; done
   wx "$(distro $v)" dev < "$REPO/bench/guest/s17-user.sh" | while read -r c res detail; do
     rec s17 "$v" "$c" "$( [ "$res" = PASS ] && echo 1 || echo 0)" pass 0 "$(echo "$detail" | tr -d '"\')"; done
