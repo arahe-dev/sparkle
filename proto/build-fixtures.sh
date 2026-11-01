@@ -31,7 +31,7 @@ sparkle)
   install -m 755 "$P/stub/mount" "$ST/usr/bin/mount"
   install -m 755 "$P/stub/ldconfig" "$ST/usr/sbin/ldconfig"
   ln -s /.sparkle/bin/busybox "$ST/usr/bin/sh"
-  cp "$P/stub/init.sh" "$ST/.sparkle/init.sh"
+  cp "$P/stub/init.sh" "$P/stub/prewarm.sh" "$ST/.sparkle/"
   echo "$OUT/image.sqfs" > "$ST/.sparkle/image"
   # S18: UPPER=<WSL path of the upper file> keeps the writes over /usr, /opt, /etc and /var/lib in
   # their own sparse ext4 file. The host creates it empty and sparse (fsutil sparse setflag +

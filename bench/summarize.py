@@ -24,10 +24,12 @@ TITLES = {
     "s15": "S15 Disk growth over repeated use",
     "s16": "S16 Failure modes",
     "s17": "S17 Compatibility",
-    "s20": "S20 Export and restore",
-
     "s18": "S18 Reclaimable upper layer",
+    "s19": "S19 Cold-read cost by image format, and prewarm (ms)",
+    "s20": "S20 Export and restore",
 }
+# Tests whose variants are not the three distros.
+TEST_VARIANTS = {"s18": ["old", "up"], "s19": ["plain", "sq128", "sq1m", "sqraw", "erolz4", "eroraw", "sqraw_direct"]}
 
 
 def load():
@@ -77,7 +79,7 @@ def table(rows, test):
         groups[m][r["variant"]].append(r["value"])
         if r.get("note") and not r["note"].startswith("rc=0"):
             notes[m].append(f'{r["variant"]}: {r["note"]}')
-    cols = [v for v in VARIANTS + ["old", "up", "all"] if any(v in groups[m] for m in order)]
+    cols = [v for v in TEST_VARIANTS.get(test, VARIANTS) + ["all"] if any(v in groups[m] for m in order)]
     out = ["| metric | " + " | ".join(cols) + " |", "|---|" + "---|" * len(cols)]
     for m in order:
         if test == "s17":
