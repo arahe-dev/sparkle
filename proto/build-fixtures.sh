@@ -33,6 +33,10 @@ sparkle)
   ln -s /.sparkle/bin/busybox "$ST/usr/bin/sh"
   cp "$P/stub/init.sh" "$ST/.sparkle/init.sh"
   echo "$OUT/image.sqfs" > "$ST/.sparkle/image"
+  # S18: UPPER=<WSL path of the upper file> keeps the writes over /usr, /opt, /etc and /var/lib in
+  # their own sparse ext4 file. The host creates it empty and sparse (fsutil sparse setflag +
+  # fsutil file seteof); init.sh formats it on first boot. Reset = recreate that file.
+  [ -n "${UPPER:-}" ] && echo "$UPPER" > "$ST/.sparkle/upper-img"
   cp -a "$T/var/lib/dpkg" "$ST/.sparkle/dpkg.seed"
   printf '[user]\ndefault=dev\n[boot]\ncommand = /.sparkle/bin/busybox sh /.sparkle/init.sh\n' > "$ST/etc/wsl.conf"
   cd "$T"
