@@ -35,14 +35,16 @@ Tested on 2026-11-01 against a pack built locally exactly as the workflow does (
 | a wrong hash in `SHA256SUMS` | refused at the first file: `checksum mismatch`; no folder, no distro left |
 | no release published (404) | fails in 0.5 s: `No prebuilt pack reachable; to build it on this PC: sparkle add ros --build` |
 
-**Against the published release** (workflow run 41282291227, 1 min 14 s on GitHub; 2026-11-01, through an HTTP proxy, fresh `SPARKLE_HOME`):
+**Against the published release** `pack-ros-c26c86a28e1a-r3` (workflow run 41282902142, about 1 min on GitHub; 2026-11-01, through an HTTP proxy, fresh `SPARKLE_HOME`):
 
 | Step | Result |
 |---|---|
-| `add ros` | **44.6 s** total: download + verify 41.9 s (372 MB), import + re-point 2.7 s |
-| first `enter ros` | 3.9 s; 194 ROS packages, `import rclpy` works, user `dev`, `/mnt/c`, `nvidia-smi` sees the GPU (that build used Ubuntu's `busybox-static`; later builds use the benchmarks' busybox, see above) |
-| `reset ros`, then `enter` | marker under `/usr/local/bin` gone, still 194 packages; 3.2 s |
-| `ls` / `eject ros` | 483 MB on disk; distro and folder removed |
+| `add ros` | **47.4 s** total: `LATEST` + download + verify 44.7 s (372 MB), import + re-point 2.7 s |
+| first `enter ros` | 3.7 s; 194 ROS packages, `import rclpy` works, `nvidia-smi` sees the GPU, the pack's busybox is v1.38 |
+| `reset ros`, then `enter` | marker under `/usr/local/bin` gone |
+| `ls` / `eject ros` | 483 MB on disk, image ref pinned to the digest; distro and folder removed |
+
+An earlier build (run 41282291227, Ubuntu's `busybox-static`, files on `pack-ros` itself) also booted and passed the same checks (44.6 s add, 3.9 s first enter). Its files were removed when the pointer scheme replaced it.
 
 Against the pitch ("working ROS 2 in about 15 s"): met once the download is done (2.7 s); the first `add` is bound by the network. The CI image is not byte-identical to a local build of the same digest (`mksquashfs` output varies between builds), so `SHA256SUMS` is per release, and `source.txt` is what pins the content.
 
